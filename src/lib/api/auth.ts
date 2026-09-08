@@ -6,12 +6,11 @@ const SLACK_RETURN_KEY = "slack_return_to";
 // user without putting the JWT in the URL. Returns "" if it can't (caller falls
 // back to the legacy ?token= param).
 async function fetchConnectTicket(): Promise<string> {
-  const token = getStoredToken();
-  if (!token) return "";
+  if (!getStoredToken()) return "";
   try {
     const res = await fetch(`${API_BASE}/api/auth/connect-ticket`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
     });
     if (!res.ok) return "";
     const json = await res.json().catch(() => null);
@@ -47,12 +46,9 @@ export async function connectGitHub() {
 }
 
 export async function connectSlack(returnTo?: string) {
-  const token = getStoredToken();
-  if (!token) return;
+  if (!getStoredToken()) return;
   localStorage.setItem(SLACK_RETURN_KEY, resolveSlackReturnPath(returnTo));
   const ticket = await fetchConnectTicket();
-  const suffix = ticket
-    ? `?ticket=${encodeURIComponent(ticket)}`
-    : `?token=${encodeURIComponent(token)}`;
+  const suffix = ticket ? `?ticket=${encodeURIComponent(ticket)}` : "";
   window.location.href = `${API_BASE}/auth/slack${suffix}`;
 }

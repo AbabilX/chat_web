@@ -358,7 +358,7 @@ export const useChatStore = create<ChatState>()(
       dmSearchQuery: "",
       dmSectionOpen: true,
       channelsSectionOpen: true,
-      scopeFilter: "all",
+      scopeFilter: "personal",
       independentChat: false,
 
       setCurrentUserId: (id) => set({ currentUserId: id }),
@@ -396,11 +396,7 @@ export const useChatStore = create<ChatState>()(
           // With independent chat live the sidebar is membership-driven and can
           // be narrowed to one scope; otherwise it stays the workspace list.
           const { independentChat, scopeFilter } = get();
-          const data = independentChat
-            ? await api.listAllChatConversations(
-                scopeFilter === "all" ? undefined : scopeFilter,
-              )
-            : await api.listChatConversations();
+          const data = await api.listAllChatConversations("personal");
           const previewDms = await decryptDMSidebarPreviews(
             data.dms ?? [],
             get().currentUserId,

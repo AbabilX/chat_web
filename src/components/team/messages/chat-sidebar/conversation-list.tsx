@@ -8,18 +8,14 @@ import { Input } from "@/components/ui/input";
 import { chatConvLabel } from "../chat-utils";
 import { localMessageSearchHit } from "@/lib/chat-local-index";
 import ConversationListHeader from "./conversation-list-header";
-import ScopeFilterTabs from "./scope-filter-tabs";
 import ConversationListItem from "./conversation-list-item";
-import StartConversationSection from "./start-conversation-section";
 import AddPeopleCta from "./add-people-cta";
 import { sortConversations } from "./conversation-sort";
 import { t } from "@/lib/i18n";
 import { useChatStore } from "@/store/chat-store";
 
 export default function ConversationList({
-  members,
   onSelect,
-  onStartDM,
   language,
   onOpenProfile,
   onOpenPeople,
@@ -96,8 +92,6 @@ export default function ConversationList({
         </div>
       </div>
 
-      <ScopeFilterTabs />
-
       <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-1 pb-32">
         {filtered.length === 0 ? (
           <div className="px-3 py-6 text-center">
@@ -128,15 +122,6 @@ export default function ConversationList({
             />
           ))
         )}
-
-        <StartConversationSection
-          members={members}
-          currentUserId={currentUserId}
-          existingPeerIds={dmPeerIds}
-          onStartDM={onStartDM}
-          language={language}
-          onOpenPeople={onOpenPeople}
-        />
       </div>
     </div>
   );

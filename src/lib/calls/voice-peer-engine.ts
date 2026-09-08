@@ -192,6 +192,10 @@ export class VoicePeerEngine {
         this.ensureVideoRecvCapacity();
         await negotiator.renegotiate();
       }
+    } else if (signal.kind === "screen_takeover") {
+      // The peer has started sharing, and a 1:1 call shows one shared screen.
+      // A no-op unless we are the one sharing.
+      await this.stopScreenShare();
     } else if (signal.kind === "ice") {
       await negotiator.addIce(signal);
     }
@@ -221,6 +225,17 @@ export class VoicePeerEngine {
   }
 
   // The browser's own "stop sharing" bar must reach the peer; a race with hang-up is not worth surfacing.
+  /**
+   * "I am taking the screen share" — the peer stops sharing its own.
+   *
+   * Sent only after our own capture succeeded: a picker the user backs out of
+   * must not end somebody else's share for nothing.
+   */
+  async requestScreenTakeover() {
+    if (this.disposed) return;
+    await this.options.sendSignal({ kind: "screen_takeover" });
+  }
+
   private readonly onScreenEnded = () => void this.stopScreenShare().catch(() => {});
 
   /**

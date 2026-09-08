@@ -23,9 +23,18 @@ export function useCallMediaToggles({ engineRef, viewRef, setView }: ToggleDeps)
   const toggleScreenShare = useCallback(async () => {
     const engine = engineRef.current;
     if (!engine || viewRef.current.phase !== "connected" || viewRef.current.mode === "screen") return;
+    // Sharing while the other side shares TAKES OVER — there is one shared
+    // screen in a 1:1 call, and this is how it changes hands.
+    const takingOver = !!viewRef.current.remoteScreen && !viewRef.current.screenSharing;
     try {
-      if (viewRef.current.screenSharing) await engine.stopScreenShare();
-      else await engine.startScreenShare();
+      if (viewRef.current.screenSharing) {
+        await engine.stopScreenShare();
+      } else {
+        await engine.startScreenShare();
+        // After the capture, never before: a dismissed picker must leave the
+        // peer's share running.
+        if (takingOver) await engine.requestScreenTakeover();
+      }
     } catch (error) {
       const code = error instanceof Error ? error.name : "screen_capture_failed";
       setView({

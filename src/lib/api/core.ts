@@ -1,17 +1,7 @@
-function resolveApiBase(): string {
-  const fromEnv = process.env.NEXT_PUBLIC_API_URL;
-  if (fromEnv) return fromEnv;
-  throw new Error("NEXT_PUBLIC_API_URL is not set");
-}
+export const API_BASE = "/backend";
 
-export const API_BASE = resolveApiBase();
-
-const TOKEN_KEY = "lbot_token";
-const TOKEN_COOKIE = "lbot_token";
-const TOKEN_MAX_AGE = 60 * 60; // 1 hour — matches backend access JWT TTL
-// The 30-day refresh token now lives in an HttpOnly cookie set by the backend
-// (/auth/exchange, /auth/refresh) — it is never readable by JavaScript, so XSS
-// cannot steal it. Only the short-lived access token is held in JS.
+const SESSION_FLAG_COOKIE = "abx_in";
+const TOKEN_MAX_AGE = 30 * 24 * 60 * 60;
 
 const tokenListeners = new Set<() => void>();
 
@@ -19,15 +9,16 @@ function emitStoredTokenChange() {
   tokenListeners.forEach((listener) => listener());
 }
 
-export function getStoredToken(): string | null {
-  if (typeof window === "undefined") return null;
-  const localToken = localStorage.getItem(TOKEN_KEY);
-  if (localToken) return localToken;
+function readSessionFlag(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.cookie
+    .split(";")
+    .some((part) => part.trim() === `${SESSION_FLAG_COOKIE}=1`);
+}
 
-  const match = document.cookie.match(
-    new RegExp(`(?:^|; )${TOKEN_COOKIE}=([^;]*)`),
-  );
-  return match ? decodeURIComponent(match[1]) : null;
+/** True when this browser has a Next session cookie. Not the Go JWT. */
+export function getStoredToken(): string | null {
+  return readSessionFlag() ? "session" : null;
 }
 
 export function subscribeStoredToken(onChange: () => void): () => void {
@@ -48,27 +39,26 @@ export function getStoredTokenServerSnapshot(): boolean {
 }
 
 export function getStoredTokenClientSnapshot(): boolean {
-  return !!getStoredToken();
+  return readSessionFlag();
 }
 
-export function persistStoredToken(token: string) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(TOKEN_KEY, token);
-  document.cookie = `${TOKEN_COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${TOKEN_MAX_AGE}; SameSite=Lax`;
+export function persistStoredToken(_token?: string) {
+  if (typeof document === "undefined") return;
+  document.cookie = `${SESSION_FLAG_COOKIE}=1; Path=/; Max-Age=${TOKEN_MAX_AGE}; SameSite=Lax`;
   emitStoredTokenChange();
 }
 
 export function clearStoredToken() {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(TOKEN_KEY);
-  document.cookie = `${TOKEN_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+  if (typeof document === "undefined") return;
+  localStorage.removeItem("lbot_token");
+  document.cookie = `${SESSION_FLAG_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+  document.cookie = "lbot_token=; Path=/; Max-Age=0; SameSite=Lax";
   emitStoredTokenChange();
 }
 
-// Retire the session: clears the HttpOnly refresh cookie server-side, then the
-// local access token. Fire-and-forget on the network call.
 export function logout() {
   if (typeof window === "undefined") return;
+  clearWsAccessToken();
   void fetch(`${API_BASE}/auth/logout`, {
     method: "POST",
     credentials: "include",
@@ -79,9 +69,6 @@ export function logout() {
   clearStoredToken();
 }
 
-// Exchanges the one-time code from the OAuth redirect for an access token. The
-// refresh token is set by the backend as an HttpOnly cookie (credentials:include
-// lets the browser store it). Keeps both tokens out of the callback URL.
 export async function exchangeAuthCode(code: string): Promise<boolean> {
   try {
     const res = await fetch(`${API_BASE}/auth/exchange`, {
@@ -92,48 +79,33 @@ export async function exchangeAuthCode(code: string): Promise<boolean> {
     });
     if (!res.ok) return false;
     const json = await res.json().catch(() => null);
-    if (!json?.success || !json.access_token) return false;
-    persistStoredToken(json.access_token);
+    if (!json?.success) return false;
+    persistStoredToken();
     return true;
   } catch {
     return false;
   }
 }
 
-let refreshInFlight: Promise<boolean> | null = null;
+let wsTicket: { token: string; at: number } | null = null;
 
-async function refreshAccessToken(): Promise<boolean> {
-  // Refresh token travels in the HttpOnly cookie; credentials:include sends it.
-  const res = await fetch(`${API_BASE}/auth/refresh`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ client: "web" }),
-  });
-
-  if (!res.ok) return false;
-
+/** Access JWT for the WebSocket handshake. Kept in memory, not storage. */
+export async function getWsAccessToken(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  if (wsTicket && Date.now() - wsTicket.at < 50_000) return wsTicket.token;
+  const res = await fetch(`${API_BASE}/session/ws`, { credentials: "include" });
+  if (!res.ok) return null;
   const json = await res.json().catch(() => null);
-  if (!json || !json.success) return false;
-
-  const access = (json.access_token ?? json.token) as string | undefined;
-  if (!access) return false;
-
-  persistStoredToken(access);
-  return true;
+  const token = json?.token as string | undefined;
+  if (!token) return null;
+  wsTicket = { token, at: Date.now() };
+  return token;
 }
 
-async function tryRefreshOnce(): Promise<boolean> {
-  if (refreshInFlight) return refreshInFlight;
-  refreshInFlight = refreshAccessToken().finally(() => {
-    refreshInFlight = null;
-  });
-  return refreshInFlight;
+export function clearWsAccessToken() {
+  wsTicket = null;
 }
 
-// Thrown for non-success API responses. Keeps the backend error code as
-// `message` (for existing string-matching callers) plus any extra JSON
-// fields (e.g. `limit`) so callers can build precise, non-hardcoded copy.
 export class ApiError extends Error {
   data: Record<string, unknown>;
   constructor(code: string, data: Record<string, unknown>) {
@@ -144,32 +116,25 @@ export class ApiError extends Error {
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  async function doFetch(retryAfterRefresh: boolean): Promise<T> {
-    const token = getStoredToken();
-    const res = await fetch(`${API_BASE}${path}`, {
-      ...init,
-      headers: token
-        ? { ...init?.headers, Authorization: `Bearer ${token}` }
-        : init?.headers,
-    });
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    credentials: "include",
+    headers: init?.headers,
+  });
 
-    if (res.status === 401) {
-      if (retryAfterRefresh && (await tryRefreshOnce())) {
-        return doFetch(false);
-      }
-      if (typeof window !== "undefined") {
-        logout();
-        window.location.href = "/";
-      }
-      throw new Error("unauthorized");
+  if (res.status === 401) {
+    if (typeof window !== "undefined") {
+      logout();
+      window.location.href = "/";
     }
-
-    const json = await res.json().catch(() => null);
-    if (!json || !json.success) throw new ApiError(json?.error ?? "api error", json ?? {});
-    return json.data as T;
+    throw new Error("unauthorized");
   }
 
-  return doFetch(true);
+  const json = await res.json().catch(() => null);
+  if (!json || !json.success) {
+    throw new ApiError(json?.error ?? "api error", json ?? {});
+  }
+  return json.data as T;
 }
 
 export const jsonHeaders = { "Content-Type": "application/json" } as const;

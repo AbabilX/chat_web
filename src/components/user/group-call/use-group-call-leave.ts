@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, type RefObject } from "react";
-import { api, API_BASE, getStoredToken, type GroupCall } from "@/lib/api";
+import { api, API_BASE, type GroupCall } from "@/lib/api";
 
 /** Idempotent server leave plus the page-close keepalive fallback. */
 export function useGroupCallLeave(callRef: RefObject<GroupCall | null>) {
@@ -15,7 +15,7 @@ export function useGroupCallLeave(callRef: RefObject<GroupCall | null>) {
       void fetch(`${API_BASE}/api/teams/chat/group-calls/${callId}/leave`, {
         method: "POST",
         keepalive: true,
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        credentials: "include",
       });
       return;
     }

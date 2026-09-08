@@ -3,14 +3,17 @@
 import type { VoiceCallContextValue } from "./voice-call-context";
 import ConnectedTime from "./connected-time";
 import RemoteScreen from "./remote-screen";
+import BalancedVideo from "./balanced-video";
 import LocalCameraPreview from "./local-camera-preview";
 import CallControls from "./call-controls";
 
 /**
  * Viewer side: the peer's video fills the window. A shared screen is
  * letterboxed (a thumbnail is useless for reading someone else's code); a
- * camera is cropped to fill, which is what a face wants. Our own camera rides
- * in the corner. Minimise drops back to the floating dock.
+ * camera is cropped to fill, but only as far as `videoDisplaySize` allows —
+ * filling outright turns a phone's portrait camera into a headless torso in
+ * this landscape window. Our own camera rides in the corner. Minimise drops
+ * back to the floating dock.
  */
 export default function CallTheater({
   call,
@@ -38,10 +41,11 @@ export default function CallTheater({
       aria-label={title}
     >
       <section className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface2)] shadow-2xl">
-        <RemoteScreen
-          stream={stream}
-          className={`h-full w-full bg-black ${kind === "screen" ? "object-contain" : "object-cover"}`}
-        />
+        {kind === "screen" ? (
+          <RemoteScreen stream={stream} className="h-full w-full bg-black object-contain" />
+        ) : (
+          <BalancedVideo stream={stream} className="h-full w-full" />
+        )}
         {view.localCamera ? (
           <LocalCameraPreview
             stream={view.localCamera}

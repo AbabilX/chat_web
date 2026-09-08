@@ -53,7 +53,7 @@ export type VoiceCallSession = {
  * renegotiation).
  */
 export type VoiceCallSignal = {
-  kind: "offer" | "answer" | "ice" | "media" | "renegotiate";
+  kind: "offer" | "answer" | "ice" | "media" | "renegotiate" | "screen_takeover";
   sdp?: string;
   candidate?: string;
   sdp_mid?: string;

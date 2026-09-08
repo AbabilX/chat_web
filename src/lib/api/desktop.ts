@@ -29,8 +29,7 @@ export type DesktopCheck = {
 export async function fetchDesktopCheck(): Promise<DesktopCheck | null> {
   try {
     const res = await fetch(`${API_BASE}/v1/api/check`, {
-      // The API caches the GitHub lookup for 10 minutes; matching that here
-      // keeps a fresh release visible quickly without hammering either side.
+      credentials: "include",
       next: { revalidate: 300 },
     });
     if (!res.ok) return null;

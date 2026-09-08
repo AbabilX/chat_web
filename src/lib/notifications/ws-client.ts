@@ -1,11 +1,15 @@
-import { API_BASE, getStoredToken, subscribeStoredToken } from "@/lib/api/core";
+import {
+  getStoredToken,
+  getWsAccessToken,
+  subscribeStoredToken,
+} from "@/lib/api/core";
 
-// Marker subprotocol the backend echoes (must match services/notify.WSAuthSubprotocol).
 const WS_AUTH_SUBPROTOCOL = "ababilx-ws";
 
 export function getNotificationsWsUrl(): string {
-  const base = API_BASE.replace(/^http/, "ws");
-  return `${base}/api/notifications/stream`;
+  if (typeof window === "undefined") return "";
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${proto}//${window.location.host}/backend/api/notifications/stream`;
 }
 
 type Handlers = {
@@ -52,8 +56,7 @@ export function connectNotificationsWs(handlers: Handlers): () => void {
   }
 
   function connect() {
-    const token = getStoredToken();
-    if (!token || closed) return;
+    if (!getStoredToken() || closed) return;
 
     if (ws) {
       if (activeSocket === ws) activeSocket = null;
@@ -62,40 +65,45 @@ export function connectNotificationsWs(handlers: Handlers): () => void {
       ws = null;
     }
 
-    try {
-      // Pass the JWT as the second subprotocol value (keeps it out of the URL).
-      ws = new WebSocket(getNotificationsWsUrl(), [WS_AUTH_SUBPROTOCOL, token]);
-      activeSocket = ws;
-    } catch {
-      scheduleReconnect();
-      return;
-    }
-
-    ws.onopen = () => {
-      backoff = MIN_BACKOFF_MS;
-      handlers.onReconnect?.();
-    };
-
-    ws.onmessage = (msg) => {
-      try {
-        const ev = JSON.parse(String(msg.data)) as { type?: string };
-        if (ev?.type) {
-          handlers.onEvent(ev as { type: string; [key: string]: unknown });
-        }
-      } catch {
-        // ignore malformed frames
+    void getWsAccessToken().then((token) => {
+      if (!token || closed) {
+        scheduleReconnect();
+        return;
       }
-    };
+      try {
+        ws = new WebSocket(getNotificationsWsUrl(), [WS_AUTH_SUBPROTOCOL, token]);
+        activeSocket = ws;
+      } catch {
+        scheduleReconnect();
+        return;
+      }
 
-    ws.onclose = () => {
-      if (activeSocket === ws) activeSocket = null;
-      ws = null;
-      if (!closed) scheduleReconnect();
-    };
+      ws.onopen = () => {
+        backoff = MIN_BACKOFF_MS;
+        handlers.onReconnect?.();
+      };
 
-    ws.onerror = () => {
-      ws?.close();
-    };
+      ws.onmessage = (msg) => {
+        try {
+          const ev = JSON.parse(String(msg.data)) as { type?: string };
+          if (ev?.type) {
+            handlers.onEvent(ev as { type: string; [key: string]: unknown });
+          }
+        } catch {
+          // ignore malformed frames
+        }
+      };
+
+      ws.onclose = () => {
+        if (activeSocket === ws) activeSocket = null;
+        ws = null;
+        if (!closed) scheduleReconnect();
+      };
+
+      ws.onerror = () => {
+        ws?.close();
+      };
+    });
   }
 
   function disconnect() {

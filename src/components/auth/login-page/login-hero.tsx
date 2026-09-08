@@ -1,5 +1,4 @@
 import { SparklesIcon } from "hugeicons-react";
-import LoginActions from "./login-actions";
 import { LOGIN_COPY } from "./login-copy";
 
 export default function LoginHero() {
@@ -21,8 +20,6 @@ export default function LoginHero() {
         <br />
         <span className="text-[#6D4AFF]">{LOGIN_COPY.headlineAccent}</span>
       </h1>
-
-      <LoginActions />
     </div>
   );
 }

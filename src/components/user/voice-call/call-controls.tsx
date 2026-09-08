@@ -21,6 +21,10 @@ export default function CallControls({
   const screenOnly = view.mode === "screen";
   const live = view.phase === "connecting" || view.phase === "connected";
   const canMute = !screenOnly && !view.microphoneUnavailable && live;
+  // The other side holds the one shared screen a 1:1 call has. Pressing Share
+  // there takes it over; the button used to be disabled instead, which read as
+  // "screen sharing is broken on this call".
+  const takingOver = !!view.remoteScreen && !view.screenSharing;
   const cameraOn = !!view.localCamera;
   const size = compact ? "h-9 w-9 px-0" : "h-11 rounded-full px-3 sm:px-4";
   const icon = compact ? "h-4 w-4" : "h-5 w-5";
@@ -102,12 +106,17 @@ export default function CallControls({
             type="button"
             variant="secondary"
             className={`${size} rounded-full`}
-            disabled={!!view.remoteScreen && !view.screenSharing}
             onClick={() => void call.toggleScreenShare()}
-            aria-label={view.screenSharing ? "Stop sharing screen" : "Share screen"}
+            aria-label={
+              view.screenSharing
+                ? "Stop sharing screen"
+                : takingOver
+                  ? "Take over screen sharing"
+                  : "Share screen"
+            }
           >
             {view.screenSharing ? <ScreenShareOff className={icon} /> : <MonitorUp className={icon} />}
-            {label(view.screenSharing ? "Stop share" : "Share screen")}
+            {label(view.screenSharing ? "Stop share" : takingOver ? "Take over" : "Share screen")}
           </Button>
         ) : null}
         <Button

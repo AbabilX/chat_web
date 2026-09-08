@@ -1,4 +1,4 @@
-import { API_BASE, exchangeAuthCode, jsonHeaders } from "./core";
+import { API_BASE, jsonHeaders, persistStoredToken } from "./core";
 
 export type QrLoginStatus = "pending" | "approved" | "denied" | "expired";
 
@@ -16,6 +16,7 @@ export async function createQrLoginSession(
   const res = await fetch(`${API_BASE}/auth/qr/session`, {
     method: "POST",
     headers: jsonHeaders,
+    credentials: "include",
     body: JSON.stringify({ device_name: deviceName ?? "" }),
   });
   const data = await res.json().catch(() => null);
@@ -31,13 +32,14 @@ export async function createQrLoginSession(
 }
 
 /**
- * Polls one handshake. On "approved" the returned one-time code is exchanged
- * for a session right here, so the caller only has to navigate into the app.
+ * Polls one handshake. The Next BFF exchanges the one-time code and sets
+ * httpOnly cookies; this client only learns that the phone approved.
  */
 export async function pollQrLogin(token: string): Promise<QrLoginStatus> {
   const res = await fetch(`${API_BASE}/auth/qr/poll`, {
     method: "POST",
     headers: jsonHeaders,
+    credentials: "include",
     body: JSON.stringify({ token }),
   });
   if (res.status === 429) return "pending";
@@ -46,9 +48,6 @@ export async function pollQrLogin(token: string): Promise<QrLoginStatus> {
     throw new Error(data?.error || "QR login failed");
   }
   const status = data.status as QrLoginStatus;
-  if (status === "approved") {
-    const ok = await exchangeAuthCode(data.code as string);
-    if (!ok) throw new Error("QR login failed");
-  }
+  if (status === "approved") persistStoredToken();
   return status;
 }
