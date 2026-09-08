@@ -5,6 +5,7 @@ import {
   Search01Icon,
   Notification01Icon,
   NotificationOff01Icon,
+  Bookmark01Icon,
 } from "hugeicons-react";
 import {
   Drawer,
@@ -57,6 +58,7 @@ export default function DmActionsSheet({
   peerName,
   peerAvatar,
   muted,
+  noteToSelf = false,
   onViewProfile,
   onSearch,
   onToggleMute,
@@ -67,6 +69,8 @@ export default function DmActionsSheet({
   peerName: string;
   peerAvatar?: string;
   muted: boolean;
+  /** Note to Self: the "peer" is the viewer, so profile and presence go. */
+  noteToSelf?: boolean;
   onViewProfile: () => void;
   onSearch: () => void;
   onToggleMute: () => void;
@@ -75,22 +79,40 @@ export default function DmActionsSheet({
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="pb-4">
         <DrawerHeader className="flex flex-col items-center gap-2 pb-2 text-center">
-          <Avatar className="h-14 w-14">
-            <AvatarImage src={peerAvatar} alt={peerName} />
-            <AvatarFallback style={{ background: "var(--surface3)" }}>
-              {chatInitials(peerName)}
-            </AvatarFallback>
-          </Avatar>
+          {noteToSelf ? (
+            <span
+              className="flex h-14 w-14 items-center justify-center rounded-full text-[var(--indigo)]"
+              style={{
+                background: "color-mix(in srgb, var(--indigo) 15%, transparent)",
+              }}>
+              <Bookmark01Icon size={24} />
+            </span>
+          ) : (
+            <Avatar className="h-14 w-14">
+              <AvatarImage src={peerAvatar} alt={peerName} />
+              <AvatarFallback style={{ background: "var(--surface3)" }}>
+                {chatInitials(peerName)}
+              </AvatarFallback>
+            </Avatar>
+          )}
           <DrawerTitle>{peerName}</DrawerTitle>
-          <PeerCallOrStatus userId={peerUserId} />
+          {noteToSelf ? (
+            <span className="text-xs text-[var(--text-muted)]">
+              Messages and files you send here stay between your own devices.
+            </span>
+          ) : (
+            <PeerCallOrStatus userId={peerUserId} />
+          )}
         </DrawerHeader>
 
         <div className="mt-1">
-          <ActionRow
-            icon={<UserIcon size={18} />}
-            label="View profile"
-            onClick={onViewProfile}
-          />
+          {noteToSelf ? null : (
+            <ActionRow
+              icon={<UserIcon size={18} />}
+              label="View profile"
+              onClick={onViewProfile}
+            />
+          )}
           <ActionRow
             icon={<Search01Icon size={18} />}
             label="Search in conversation"

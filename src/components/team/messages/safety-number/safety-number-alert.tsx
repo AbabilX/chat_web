@@ -26,7 +26,10 @@ export default function SafetyNumberAlert() {
   const [expanded, setExpanded] = useState(false);
 
   const conv = dms.find((item) => item.id === activeId) ?? null;
-  const isDM = conv?.type === "dm";
+  // A safety number is a comparison with somebody else. In a note to self the
+  // peer is the viewer, so there is nothing to compare and no substitution to
+  // catch — the key on both ends is the same key.
+  const isDM = conv?.type === "dm" && !conv.is_self;
   const safety = useSafetyNumber(isDM ? conv?.peer_user_id : undefined, !!isDM);
 
   if (!conv || !isDM || safety.trust !== "changed") return null;

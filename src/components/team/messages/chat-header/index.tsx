@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Menu01Icon, NotificationOff01Icon } from "hugeicons-react";
+import { Menu01Icon } from "hugeicons-react";
 import { type ChatConversation } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { useTeamContextOptional } from "@/components/team/shared/team-provider";
@@ -11,14 +11,10 @@ import { cn } from "@/lib/utils";
 import GroupAvatarStack from "../chat-sidebar/group-avatar-stack";
 import GroupDetailsDialog from "./group-details-dialog";
 import DeleteGroupDialog from "./delete-group-dialog";
-import DmActionsSheet from "./dm-actions-sheet";
-import DmProfileDialog from "./dm-profile-dialog";
-import DmCallActions from "./dm-call-actions";
+import DmHeader from "./dm-header";
 import GroupCallAction from "./group-call-action";
 import { useChatHeaderActions } from "./use-chat-header-actions";
-import PeerCallOrStatus from "@/components/shared/peer-call-or-status";
 import { t } from "@/lib/i18n";
-import { LockKeyhole } from "lucide-react";
 
 export default function ChatHeader({
   activeConv,
@@ -39,8 +35,6 @@ export default function ChatHeader({
   const upsertChannel = useChatStore((s) => s.upsertChannel);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [dmSheetOpen, setDmSheetOpen] = useState(false);
-  const [dmProfileOpen, setDmProfileOpen] = useState(false);
   const actions = useChatHeaderActions(activeConv, language);
 
   // Dialog open-state lives on this persistent header, so it must be cleared
@@ -51,8 +45,6 @@ export default function ChatHeader({
     prevConvId.current = activeConv?.id;
     if (detailsOpen) setDetailsOpen(false);
     if (deleteOpen) setDeleteOpen(false);
-    if (dmSheetOpen) setDmSheetOpen(false);
-    if (dmProfileOpen) setDmProfileOpen(false);
   }
 
   const isGroup = !!activeConv && activeConv.type !== "dm";
@@ -84,13 +76,7 @@ export default function ChatHeader({
     : canManage;
   const teamMembers = teamCtx?.detail?.members ?? [];
 
-  const peerMember =
-    (isDM && activeConv?.peer_user_id
-      ? teamMembers.find((m) => m.user_id === activeConv.peer_user_id)
-      : null) ?? null;
-
   function openConversationSearch() {
-    setDmSheetOpen(false);
     if (
       typeof window !== "undefined" &&
       window.matchMedia("(max-width: 1023px)").matches
@@ -181,72 +167,14 @@ export default function ChatHeader({
           />
         </>
       ) : isDM && activeConv ? (
-        <>
-          <div className="flex shrink-0 items-center gap-0 rounded-full border border-[var(--border)] bg-[var(--surface2)] shadow-sm">
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenProfile && activeConv.peer_user_id) {
-                  onOpenProfile(activeConv.peer_user_id);
-                  return;
-                }
-                setDmSheetOpen(true);
-              }}
-              className={cn(
-                "flex flex-col items-start justify-center gap-0.5 truncate rounded-l-full py-1 pl-3 pr-2 transition-colors",
-                "hover:bg-white/[0.06] [data-theme=light]:hover:bg-black/[0.04]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--indigo)]",
-              )}
-              aria-label="Conversation actions"
-            >
-              <span className="flex max-w-full items-center justify-center gap-1 text-sm font-semibold">
-                <LockKeyhole
-                  aria-label="End-to-end encrypted"
-                  className="size-3.5 shrink-0 text-emerald-600"
-                />
-                <span className="truncate">{chatConvLabel(activeConv)}</span>
-                {activeConv.muted ? (
-                  <NotificationOff01Icon
-                    size={12}
-                    className="shrink-0 text-muted-foreground"
-                  />
-                ) : null}
-              </span>
-              <PeerCallOrStatus userId={activeConv.peer_user_id} compact />
-            </button>
-            <div className="h-5 w-px bg-[var(--border)]" />
-            <DmCallActions conv={activeConv} capsule />
-          </div>
-          <DmActionsSheet
-            open={dmSheetOpen}
-            onOpenChange={setDmSheetOpen}
-            peerUserId={activeConv.peer_user_id}
-            peerName={chatConvLabel(activeConv)}
-            peerAvatar={activeConv.peer_user_avatar}
-            muted={!!activeConv.muted}
-            onViewProfile={() => {
-              setDmSheetOpen(false);
-              if (onOpenProfile && activeConv.peer_user_id) {
-                onOpenProfile(activeConv.peer_user_id);
-                return;
-              }
-              setDmProfileOpen(true);
-            }}
-            onSearch={openConversationSearch}
-            onToggleMute={() => {
-              setDmSheetOpen(false);
-              void actions.toggleMute();
-            }}
-          />
-          <DmProfileDialog
-            open={dmProfileOpen}
-            onOpenChange={setDmProfileOpen}
-            peerUserId={activeConv.peer_user_id}
-            peerName={chatConvLabel(activeConv)}
-            peerAvatar={activeConv.peer_user_avatar}
-            member={peerMember}
-          />
-        </>
+        <DmHeader
+          key={activeConv.id}
+          conv={activeConv}
+          teamMembers={teamMembers}
+          onOpenProfile={onOpenProfile}
+          onSearch={openConversationSearch}
+          onToggleMute={() => void actions.toggleMute()}
+        />
       ) : (
         <h2 className="flex min-w-0 items-center gap-1.5 truncate text-base font-semibold">
           <span className="truncate rounded-full border border-[var(--border)] bg-[var(--surface2)] px-4 py-1.5 shadow-sm">

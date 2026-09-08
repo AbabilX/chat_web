@@ -2,9 +2,9 @@
 
 import type { ChatConversation } from "@/lib/api";
 import ConversationRow from "../conversation-row";
-import { chatConvLabel, chatInitials } from "../chat-utils";
+import { chatConvLabel, chatInitials, isNoteToSelf } from "../chat-utils";
 import GroupAvatarStack from "./group-avatar-stack";
-import { Link01Icon } from "hugeicons-react";
+import { Bookmark01Icon, Link01Icon } from "hugeicons-react";
 
 /** One row in the unified list — a group (stacked avatars) or a DM (peer avatar). */
 export default function ConversationListItem({
@@ -54,6 +54,22 @@ export default function ConversationListItem({
               name={chatConvLabel(conv)}
             />
           )
+        }
+      />
+    );
+  }
+
+  // A note to self has the viewer on both ends, so the peer avatar would be
+  // their own picture with their own presence dot on it. Signal draws a
+  // bookmark instead, and so do we.
+  if (isNoteToSelf(conv)) {
+    return (
+      <ConversationRow
+        {...shared}
+        avatarNode={
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--indigo)_15%,transparent)] text-[var(--indigo)]">
+            <Bookmark01Icon size={17} />
+          </div>
         }
       />
     );

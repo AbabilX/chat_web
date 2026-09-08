@@ -33,6 +33,13 @@ export type ChatConversation = {
   peer_user_avatar?: string;
   peer_left?: boolean;
   /**
+   * Note to Self: a personal DM whose two participants are the same account.
+   * The peer fields describe the viewer, so everything that needs a second
+   * person — calls, safety numbers, the request bar, block and report — is
+   * hidden rather than pointed back at them.
+   */
+  is_self?: boolean;
+  /**
    * Whether the viewer may post here. Only a block closes a DM now —
    * acceptance is not a precondition for sending.
    */

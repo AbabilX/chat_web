@@ -1,19 +1,14 @@
 "use client";
 
 import { loginWithGoogle } from "@/lib/api";
-import { Button } from "@/components/ui/button";
 import GoogleIcon from "./google-icon";
+import { LOGIN_BUTTON_CLASS, LOGIN_COPY } from "./login-copy";
 
 export default function GoogleLoginButton() {
   return (
-    <Button
-      type="button"
-      size="lg"
-      className="w-full gap-2"
-      onClick={loginWithGoogle}
-    >
-      <GoogleIcon size={16} />
-      <span>Continue with Google</span>
-    </Button>
+    <button type="button" onClick={loginWithGoogle} className={LOGIN_BUTTON_CLASS}>
+      <GoogleIcon size={20} />
+      {LOGIN_COPY.signInGoogle}
+    </button>
   );
 }

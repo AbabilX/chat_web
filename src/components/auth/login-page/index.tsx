@@ -1,14 +1,23 @@
-import LoginActions from "./login-actions";
-import LoginHero from "./login-hero";
+import LoginHeroSection from "./login-hero-section";
+import LoginNavbar from "./login-navbar";
 import LoginRedirect from "./login-redirect";
+import LoginTheme from "./login-theme";
 
 export default function LoginPage() {
   return (
     <LoginRedirect>
-      <main className="flex min-h-screen flex-col items-center justify-center gap-8 px-6">
-        <LoginHero />
-        <LoginActions />
-      </main>
+      <LoginTheme>
+        <div
+          data-theme="light"
+          className="landing-page min-h-screen overflow-x-hidden text-[var(--text)]"
+          style={{ background: "var(--bg)", colorScheme: "light" }}
+        >
+          <LoginNavbar />
+          <main id="main-content">
+            <LoginHeroSection />
+          </main>
+        </div>
+      </LoginTheme>
     </LoginRedirect>
   );
 }

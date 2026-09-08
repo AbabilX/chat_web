@@ -11,7 +11,7 @@ const LOGIN_METHODS: { id: string; Panel: ComponentType }[] = [
 
 export default function LoginActions() {
   return (
-    <div className="flex w-full max-w-xs flex-col gap-3">
+    <div className="flex flex-wrap items-center gap-3">
       {LOGIN_METHODS.map(({ id, Panel }) => (
         <Panel key={id} />
       ))}

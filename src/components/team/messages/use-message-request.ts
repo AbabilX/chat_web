@@ -21,6 +21,10 @@ export function useMessageRequest(conversation: ChatConversation | null) {
 
   return useMemo(() => {
     if (!conversation || conversation.type !== "dm") return undefined;
+    // A note to self has the viewer as its own peer, so a request bar here
+    // would offer to block yourself. The server already blanks the state; this
+    // is the second lock, because the bar replaces the composer when it shows.
+    if (conversation.is_self) return undefined;
     if (conversation.request_state !== "incoming") return undefined;
     const id = conversation.id;
     const peerId = conversation.peer_user_id ?? "";

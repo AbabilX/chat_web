@@ -68,12 +68,29 @@ export function truncatePreviewText(text: string, max = 90) {
   return `${flat.slice(0, max)}…`;
 }
 
+/** The name every surface gives the Note to Self conversation. */
+export const NOTE_TO_SELF_LABEL = "Note to Self";
+
+/**
+ * Whether this is the viewer's own note-to-self thread.
+ *
+ * `is_self` is the server's answer and the only one worth trusting: comparing
+ * `peer_user_id` to the signed-in id works too, but every call site would need
+ * the current user threaded into it, and one that forgot would silently render
+ * a note to self as an ordinary DM with the viewer as its peer.
+ */
+export function isNoteToSelf(conv?: { is_self?: boolean } | null) {
+  return !!conv?.is_self;
+}
+
 export function chatConvLabel(conv: {
   type: string;
   name?: string;
   slug?: string;
   peer_user_name?: string;
+  is_self?: boolean;
 }) {
+  if (isNoteToSelf(conv)) return NOTE_TO_SELF_LABEL;
   if (conv.type !== "dm") {
     return conv.name || conv.slug || "Group";
   }
