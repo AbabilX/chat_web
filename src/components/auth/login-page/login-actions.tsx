@@ -1,42 +1,19 @@
 "use client";
 
-import { Github01Icon } from "hugeicons-react";
-import { Button } from "@/components/ui/button";
-import { loginWithGitHub, loginWithGoogle } from "@/lib/api";
-import GoogleIcon from "./google-icon";
+import type { ComponentType } from "react";
+import GoogleLoginButton from "./google-login-button";
+import QrLoginButton from "./qr-login-button";
 
-const LOGIN_PROVIDERS = [
-  {
-    id: "google",
-    label: "Continue with Google",
-    onClick: loginWithGoogle,
-    icon: <GoogleIcon size={16} />,
-    variant: "default" as const,
-  },
-  {
-    id: "github",
-    label: "Continue with GitHub",
-    onClick: loginWithGitHub,
-    icon: <Github01Icon size={16} />,
-    variant: "outline" as const,
-  },
+const LOGIN_METHODS: { id: string; Panel: ComponentType }[] = [
+  { id: "google", Panel: GoogleLoginButton },
+  { id: "qr", Panel: QrLoginButton },
 ];
 
 export default function LoginActions() {
   return (
     <div className="flex w-full max-w-xs flex-col gap-3">
-      {LOGIN_PROVIDERS.map((provider) => (
-        <Button
-          key={provider.id}
-          type="button"
-          size="lg"
-          variant={provider.variant}
-          className="w-full gap-2"
-          onClick={provider.onClick}
-        >
-          {provider.icon}
-          <span>{provider.label}</span>
-        </Button>
+      {LOGIN_METHODS.map(({ id, Panel }) => (
+        <Panel key={id} />
       ))}
     </div>
   );

@@ -16,8 +16,7 @@ Fill `.env.local` from `.env.example`, then open the URL Next prints.
 
 | Path | What it is |
 | --- | --- |
-| `/` | Login (Google / GitHub) |
-| `/auth/callback` | GitHub OAuth return |
+| `/` | Login (Google or phone QR) |
 | `/auth/google/callback` | Google OAuth return |
 | `/user/messages` | Personal + workspace chat |
 | `/user/workspace/messages` | Same chat, workspace-gated |
