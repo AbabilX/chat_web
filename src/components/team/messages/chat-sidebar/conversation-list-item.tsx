@@ -1,0 +1,75 @@
+"use client";
+
+import type { ChatConversation } from "@/lib/api";
+import ConversationRow from "../conversation-row";
+import { chatConvLabel, chatInitials } from "../chat-utils";
+import GroupAvatarStack from "./group-avatar-stack";
+import { Link01Icon } from "hugeicons-react";
+
+/** One row in the unified list — a group (stacked avatars) or a DM (peer avatar). */
+export default function ConversationListItem({
+  conv,
+  active,
+  currentUserId,
+  onSelect,
+  searchSnippet,
+  searchMessageId,
+  onOpenProfile,
+}: {
+  conv: ChatConversation;
+  active: boolean;
+  currentUserId: string;
+  onSelect: (id: string, messageId?: string) => void;
+  searchSnippet?: string | null;
+  searchMessageId?: string | null;
+  onOpenProfile?: (userId: string) => void;
+}) {
+  const shared = {
+    title: chatConvLabel(conv),
+    lastMessageAt: conv.last_message_at,
+    lastMessageBody: searchSnippet ?? conv.last_message_body,
+    lastMessageUserId: searchSnippet ? undefined : conv.last_message_user_id,
+    lastMessageAttachmentType: conv.last_message_attachment_type,
+    lastMessageAttachmentName: conv.last_message_attachment_name,
+    lastMessageAttachments: conv.last_message_attachments,
+    currentUserId,
+    unreadCount: conv.unread_count,
+    active,
+    onClick: () => onSelect(conv.id, searchMessageId ?? undefined),
+  };
+
+  if (conv.type !== "dm") {
+    return (
+      <ConversationRow
+        {...shared}
+        avatarNode={
+          conv.type === "webhook" ? (
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--indigo)_15%,transparent)] text-[var(--indigo)]">
+              <Link01Icon size={17} />
+            </div>
+          ) : (
+            <GroupAvatarStack
+              avatars={conv.member_avatars}
+              avatarUrl={conv.avatar_url}
+              name={chatConvLabel(conv)}
+            />
+          )
+        }
+      />
+    );
+  }
+
+  return (
+    <ConversationRow
+      {...shared}
+      avatarUrl={conv.peer_user_avatar}
+      avatarFallback={chatInitials(conv.peer_user_name)}
+      peerUserId={conv.peer_user_id}
+      onAvatarClick={
+        conv.peer_user_id && onOpenProfile
+          ? () => onOpenProfile(conv.peer_user_id!)
+          : undefined
+      }
+    />
+  );
+}

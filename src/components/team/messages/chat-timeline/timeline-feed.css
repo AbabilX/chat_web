@@ -1,0 +1,53 @@
+/**
+ * Signal Desktop `.module-timeline__messages__container` / `__messages`
+ * (stylesheets/_modules.scss). Opening a chat does not animate a scroll —
+ * justify-end sits the thread on the newest message, and JS only assigns
+ * scrollTop before paint. `html { scroll-behavior: smooth }` is inherited
+ * and would make that assignment visible; auto !important kills it here.
+ */
+.chat-timeline-scroller {
+  display: flex;
+  flex: 1 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: auto;
+  scroll-behavior: auto !important;
+}
+
+.chat-timeline-feed {
+  display: flex;
+  flex: 1 1;
+  flex-direction: column;
+  position: relative;
+  justify-content: flex-end;
+  padding-bottom: 6px;
+}
+
+.chat-timeline-feed::after {
+  content: "";
+  display: block;
+  height: 1px;
+}
+
+.chat-timeline-feed--have-newest:not(.chat-timeline-feed--locked) > * {
+  overflow-anchor: none;
+}
+
+.chat-timeline-feed--have-newest:not(.chat-timeline-feed--locked)::after {
+  overflow-anchor: auto;
+}
+
+.chat-timeline-feed--have-oldest {
+  justify-content: flex-start;
+}
+
+.chat-timeline-bottom-detector {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 15px;
+  pointer-events: none;
+}
