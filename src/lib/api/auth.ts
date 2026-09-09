@@ -31,10 +31,6 @@ export function consumeSlackReturnPath(): string {
   return stored ?? "/user/settings";
 }
 
-export function loginWithGoogle() {
-  window.location.href = `${API_BASE}/auth/google`;
-}
-
 export function loginWithGitHub() {
   window.location.href = `${API_BASE}/auth/github`;
 }

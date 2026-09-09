@@ -1,20 +1,11 @@
 "use client";
 
-import type { ComponentType } from "react";
-import GoogleLoginButton from "./google-login-button";
 import QrLoginButton from "./qr-login-button";
-
-const LOGIN_METHODS: { id: string; Panel: ComponentType }[] = [
-  { id: "google", Panel: GoogleLoginButton },
-  { id: "qr", Panel: QrLoginButton },
-];
 
 export default function LoginActions() {
   return (
     <div className="flex flex-wrap items-center gap-3">
-      {LOGIN_METHODS.map(({ id, Panel }) => (
-        <Panel key={id} />
-      ))}
+      <QrLoginButton />
     </div>
   );
 }
