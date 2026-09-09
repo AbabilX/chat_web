@@ -11,7 +11,6 @@ export function useGroupCallLeave(callRef: RefObject<GroupCall | null>) {
     if (leftCallIdsRef.current.has(callId)) return;
     leftCallIdsRef.current.add(callId);
     if (keepalive) {
-      const token = getStoredToken();
       void fetch(`${API_BASE}/api/teams/chat/group-calls/${callId}/leave`, {
         method: "POST",
         keepalive: true,
