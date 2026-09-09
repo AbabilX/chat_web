@@ -1,3 +1,4 @@
+import { syncChatDeletions, deletionSnapshot, messageSurvives, conversationSurvives, rememberDeletedMessage } from "@/lib/messages/deletions";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { toast } from "sonner";
@@ -361,7 +362,11 @@ export const useChatStore = create<ChatState>()(
       scopeFilter: "personal",
       independentChat: false,
 
-      setCurrentUserId: (id) => set({ currentUserId: id }),
+      setCurrentUserId: (id) => {
+        const changed = id !== get().currentUserId;
+        set({ currentUserId: id });
+        if (id && changed) void get().fetchSidebar({ silent: true });
+      },
       setIndependentChat: (value) => set({ independentChat: value }),
       setScopeFilter: (value) => {
         if (get().scopeFilter === value) return;
@@ -393,6 +398,13 @@ export const useChatStore = create<ChatState>()(
       fetchSidebar: async (opts) => {
         if (!opts?.silent) set({ sidebarLoading: true });
         try {
+          const markers = await syncChatDeletions(get().currentUserId);
+          set((state) => ({
+            dms: state.dms.filter((item) => conversationSurvives(item, markers)),
+            channels: state.channels.filter((item) => conversationSurvives(item, markers)),
+            feeds: Object.fromEntries(Object.entries(state.feeds).map(([key, feed]) => [key, { ...feed, messages: feed.messages.filter((m) => messageSurvives(m, markers)) }])),
+            threadRepliesByRoot: Object.fromEntries(Object.entries(state.threadRepliesByRoot).map(([key, messages]) => [key, messages.filter((m) => messageSurvives(m, markers))])),
+          }));
           // With independent chat live the sidebar is membership-driven and can
           // be narrowed to one scope; otherwise it stays the workspace list.
           const { independentChat, scopeFilter } = get();
@@ -537,7 +549,8 @@ export const useChatStore = create<ChatState>()(
           const messages = get().currentUserId
             ? await decryptChatMessages(page.messages, get().currentUserId)
             : page.messages;
-          const sorted = threadRootId ? messages : [...messages].reverse();
+          const visible = messages.filter((m) => messageSurvives(m, deletionSnapshot(get().currentUserId)));
+          const sorted = threadRootId ? visible : [...visible].reverse();
           set((s) => ({
             feeds: {
               ...s.feeds,
@@ -603,7 +616,8 @@ export const useChatStore = create<ChatState>()(
           const messages = get().currentUserId
             ? await decryptChatMessages(page.messages, get().currentUserId)
             : page.messages;
-          const sorted = threadRootId ? messages : [...messages].reverse();
+          const visible = messages.filter((m) => messageSurvives(m, deletionSnapshot(get().currentUserId)));
+          const sorted = threadRootId ? visible : [...visible].reverse();
           set((s) => {
             const current = s.feeds[key] ?? emptyFeed();
             return {
@@ -923,6 +937,7 @@ export const useChatStore = create<ChatState>()(
         }
 
         if (ev.type === "chat.conversation.deleted") {
+          void fetchSidebar({ silent: true });
           set((state) => withoutConversation(state, ev.conversation_id));
           return;
         }
@@ -967,6 +982,7 @@ export const useChatStore = create<ChatState>()(
 
         if (ev.type === "chat.message.created") {
           const msg = ev.message;
+          if (!messageSurvives(msg, deletionSnapshot(currentUserId))) return;
           const isActive = ev.conversation_id === activeConversationId;
           void acknowledgeMessages("delivered", [msg.id]).catch(() => {});
           if (isActive && document.visibilityState === "visible") {
@@ -1000,7 +1016,7 @@ export const useChatStore = create<ChatState>()(
           return;
         }
 
-        if (ev.conversation_id !== activeConversationId) return;
+
 
         if (ev.type === "chat.message.updated") {
           updateFeedMessage(ev.conversation_id, ev.message, null);
@@ -1011,8 +1027,11 @@ export const useChatStore = create<ChatState>()(
         }
 
         if (ev.type === "chat.message.deleted") {
+          rememberDeletedMessage(currentUserId, ev.conversation_id, ev.id);
           removeFeedMessage(ev.conversation_id, ev.id, null);
-          removeFeedMessage(ev.conversation_id, ev.id, threadRootId);
+          for (const key of Object.keys(get().feeds)) {
+            if (key.startsWith(`${ev.conversation_id}:thread:`)) removeFeedMessage(ev.conversation_id, ev.id, key.split(":thread:")[1]);
+          }
           for (const rootId of Object.keys(get().threadRepliesByRoot)) {
             markThreadReplyDeleted(rootId, ev.id);
           }

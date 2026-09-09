@@ -1,3 +1,4 @@
+import { syncChatDeletions } from "../deletions";
 import { sendChatMessage } from "@/lib/api/user/chat";
 import type { ChatMessage } from "@/lib/api/types/chat";
 import {
@@ -52,6 +53,7 @@ export async function sendChatMessageDurably(
 }
 
 export async function replayChatOutbox(userId: string): Promise<ChatMessage[]> {
+  await syncChatDeletions(userId);
   const entries = (await readChatOutbox()).filter((entry) => entry.userId === userId);
   const delivered: ChatMessage[] = [];
   for (const entry of entries) {
