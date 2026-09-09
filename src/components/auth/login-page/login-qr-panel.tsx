@@ -28,7 +28,7 @@ export default function LoginQrPanel() {
             : "";
 
   return (
-    <div className="flex w-full max-w-[320px] flex-col items-center gap-4">
+    <div className="flex w-full max-w-[320px] flex-col items-start gap-4">
       <div className="flex h-[280px] w-[280px] items-center justify-center rounded-2xl bg-white p-3 shadow-[0_8px_32px_rgba(15,23,42,0.08)]">
         {imageUrl && !dead ? (
           // eslint-disable-next-line @next/next/no-img-element -- data URI QR
@@ -39,7 +39,7 @@ export default function LoginQrPanel() {
           </span>
         )}
       </div>
-      <p className="text-center text-sm text-[#475569]">{LOGIN_COPY.qrHint}</p>
+      <p className="text-left text-sm text-[#475569]">{LOGIN_COPY.qrHint}</p>
       {status === "pending" && secondsLeft > 0 ? (
         <p className="text-xs text-[#64748b]">
           {LOGIN_COPY.qrExpiresIn} {Math.floor(secondsLeft / 60)}:

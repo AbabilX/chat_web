@@ -91,9 +91,11 @@ async function exchangeGoCode(code: string): Promise<boolean> {
 function outboundHeaders(req: Request, access: string | null): Headers {
   const headers = new Headers();
   req.headers.forEach((value, key) => {
-    if (HOP_BY_HOP.has(key.toLowerCase())) return;
+    const lower = key.toLowerCase();
+    if (HOP_BY_HOP.has(lower) || lower === "accept-encoding") return;
     headers.set(key, value);
   });
+  headers.set("Accept", "application/json");
   if (access) headers.set("Authorization", `Bearer ${access}`);
   else headers.delete("Authorization");
   return headers;
@@ -166,8 +168,11 @@ export async function forwardToGo(req: Request, path: string): Promise<Response>
     return Response.json({ success: true });
   }
 
+  // Do not copy Go's headers onto this rebuilt JSON. Fetch has already
+  // decoded the upstream body, but Content-Encoding / Content-Type still
+  // describe the wire bytes — live /backend/auth/qr/session was 200 with
+  // a 0-byte body, so the QR UI showed "Failed to start QR login".
   return Response.json(json ?? { success: false, error: "api error" }, {
     status: res.status,
-    headers: clientResponseHeaders(res),
   });
 }
