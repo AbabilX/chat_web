@@ -31,6 +31,8 @@ export type ChatConversation = {
   peer_user_id?: string;
   peer_user_name?: string;
   peer_user_avatar?: string;
+  /** Peer's profile cover. Same job as `banner_url` on a group. */
+  peer_user_cover?: string;
   peer_left?: boolean;
   /**
    * Note to Self: a personal DM whose two participants are the same account.
