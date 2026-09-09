@@ -27,7 +27,7 @@ in both trees, so a clean eslint run is not the bar.
 ## Layout
 
 - `src/app/**/page.tsx` — Server Components only. They compose feature folders.
-- `src/components/auth/login-page/` — login screen (`index.tsx` + parts)
+- `src/components/auth/login-page/` — login screen (`index.tsx` + parts). Sign-in is phone QR only.
 - `src/components/user-shell/` — signed-in chrome + call/chat providers
 - `src/components/team/messages/` — chat UI (copied from Ababil-X-frontend)
 
