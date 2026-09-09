@@ -129,6 +129,10 @@ export default function CommentMessage({
     try {
       await onEditSave(editDraft);
       setEditing(false);
+    } catch {
+      // Keep the editor — and the draft — open. The caller has already put the
+      // reason in front of the user; closing on top of that reads as an edit
+      // that silently did nothing.
     } finally {
       setEditBusy(false);
     }

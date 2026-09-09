@@ -27,7 +27,7 @@ import { useMessageRequest } from "./use-message-request";
 import type { ChatMessage } from "@/lib/api";
 import MessageVaultGate from "./message-vault-gate";
 import { useMessageVaultStore } from "@/store/message-vault-store";
-import { encryptExistingDMText } from "@/lib/chat-e2ee/crypto";
+import { editEncryptedChat } from "@/lib/chat-e2ee/dm-edit";
 import E2EEIntroDialog, { hasSeenE2EEIntro } from "./e2ee-intro-dialog";
 import MessageStorageNoticeDialog, {
   hasSeenMessageStorageNotice,
@@ -93,6 +93,8 @@ export default function MessagesClient() {
     updateFeedMessage,
     removeFeedMessage,
     updateFeedReactions,
+    patchThreadReply,
+    markThreadReplyDeleted,
     fetchSidebar,
   } = useChatStore(
     useShallow((s) => ({
@@ -117,6 +119,8 @@ export default function MessagesClient() {
       updateFeedMessage: s.updateFeedMessage,
       removeFeedMessage: s.removeFeedMessage,
       updateFeedReactions: s.updateFeedReactions,
+      patchThreadReply: s.patchThreadReply,
+      markThreadReplyDeleted: s.markThreadReplyDeleted,
       fetchSidebar: s.fetchSidebar,
     })),
   );
@@ -358,15 +362,19 @@ export default function MessagesClient() {
     const existing = [...mainChat.messages, ...threadChat.messages].find(
       (message) => message.id === messageId,
     );
-    const payload =
-      existing?.encryption_version === 1
-        ? await encryptExistingDMText(activeConversationId, body, currentUserId)
-        : body;
-    const updated = await api.patchChatMessage(messageId, payload);
-    const display =
-      existing?.encryption_version === 1 ? { ...updated, body } : updated;
+    const encrypted = existing?.encryption_version === 1;
+    const updated = encrypted
+      ? await editEncryptedChat(activeConversationId, body, currentUserId, (payload) =>
+          api.patchChatMessage(messageId, payload),
+        )
+      : await api.patchChatMessage(messageId, body);
+    const display = encrypted ? { ...updated, body } : updated;
     updateFeedMessage(activeConversationId, display, null);
     updateFeedMessage(activeConversationId, display, threadRootId);
+    // The reply preview under a message reads threadRepliesByRoot, not the
+    // feed, so an edit that only touched the feeds left it showing the old
+    // text until a WebSocket round trip or a refetch.
+    if (display.parent_id) patchThreadReply(display.parent_id, display);
   }
 
   function presign(contentType: string, fileName: string, sizeBytes?: number) {
@@ -489,6 +497,7 @@ export default function MessagesClient() {
                     toast.error(
                       e instanceof Error ? e.message : "Failed to edit message",
                     );
+                    throw e;
                   }
                 }}
                 onDeleteMessage={async (id) => {
@@ -558,6 +567,7 @@ export default function MessagesClient() {
                   toast.error(
                     e instanceof Error ? e.message : "Failed to edit message",
                   );
+                  throw e;
                 }
               }}
               onDeleteMessage={async (id) => {
@@ -565,6 +575,7 @@ export default function MessagesClient() {
                   await api.deleteChatMessage(id);
                   removeFeedMessage(activeConversationId!, id, null);
                   removeFeedMessage(activeConversationId!, id, threadRootId);
+                  if (threadRootId) markThreadReplyDeleted(threadRootId, id);
                 } catch (e) {
                   toast.error(
                     e instanceof Error ? e.message : "Failed to delete message",
