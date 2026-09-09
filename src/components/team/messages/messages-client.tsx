@@ -358,7 +358,12 @@ export default function MessagesClient() {
   }
 
   async function handleEditMessage(messageId: string, body: string) {
-    if (!activeConversationId || !currentUserId) return;
+    // Never a silent return: a Save that does nothing and says nothing is
+    // indistinguishable from a broken button, which is how this arrived as
+    // "the edit just doesn't work".
+    if (!activeConversationId || !currentUserId) {
+      throw new Error("Still loading this chat — try again in a moment");
+    }
     const existing = [...mainChat.messages, ...threadChat.messages].find(
       (message) => message.id === messageId,
     );
