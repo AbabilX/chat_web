@@ -61,7 +61,8 @@ export default function CallDock({
             variant="ghost"
             className="h-8 w-8 shrink-0 rounded-full"
             onClick={onExpand}
-            aria-label="Show shared screen full screen"
+            aria-label="Full window"
+            title="Full window"
           >
             <Maximize2 className="size-4" />
           </Button>

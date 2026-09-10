@@ -48,6 +48,14 @@ export class VoiceMediaMap {
     return last;
   }
 
+  /**
+   * The peer has named a stream we are not receiving yet: it has just added a
+   * track, and that track may need a transceiver of ours to arrive on.
+   */
+  get awaiting(): boolean {
+    return [this.cameraId, this.screenId].some((id) => id !== null && !this.streams.has(id));
+  }
+
   clear() {
     this.streams.clear();
     this.cameraId = null;

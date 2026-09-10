@@ -22,7 +22,7 @@ import {
   decryptChatMessage,
   decryptChatMessages,
 } from "@/lib/chat-e2ee/crypto";
-import { decryptDMSidebarPreviews } from "@/lib/chat-e2ee/sidebar-preview";
+import { decryptSidebarPreviews } from "@/lib/chat-e2ee/sidebar-preview";
 import {
   rememberLocalMessages,
   removeLocalMessage,
@@ -414,12 +414,13 @@ export const useChatStore = create<ChatState>()(
                 scopeFilter === "all" ? undefined : scopeFilter,
               )
             : await api.listChatConversations();
-          const previewDms = await decryptDMSidebarPreviews(
-            data.dms ?? [],
-            get().currentUserId,
-          );
+          // Groups are sealed exactly like DMs, so both lists are opened.
+          const [previewDms, previewChannels] = await Promise.all([
+            decryptSidebarPreviews(data.dms ?? [], get().currentUserId),
+            decryptSidebarPreviews(data.channels ?? [], get().currentUserId),
+          ]);
           const dms = sortDms(previewDms);
-          const channels = sortChannels(data.channels ?? []);
+          const channels = sortChannels(previewChannels);
           // A conversation opened or created while this request was in flight
           // (startChatDM -> upsertDM -> select) is not in the response yet.
           // Dropping it here blanked the screen mid-click, so keep the local row

@@ -276,7 +276,14 @@ export class VoicePeerEngine {
           transceiver.receiver.track?.kind === "video" &&
           (transceiver.direction === "sendrecv" || transceiver.direction === "recvonly"),
       );
-    if (!canReceive) peer.addTransceiver("video", { direction: "recvonly" });
+    // One line is not always enough. A peer that has ever sent its camera
+    // keeps that transceiver for a later replaceTrack, and WebRTC never reuses
+    // a transceiver that has sent — so its screen share arrives on a second
+    // one, which needs an m-line of its own or it is never sent at all. That
+    // was "video call, then share: the other side sees nothing".
+    if (!canReceive || this.remote.awaitingStream) {
+      peer.addTransceiver("video", { direction: "recvonly" });
+    }
   }
 
   private requirePeer() {

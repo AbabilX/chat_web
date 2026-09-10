@@ -1,5 +1,7 @@
 "use client";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { chatInitials } from "@/components/team/messages/chat-utils";
 import type { VoiceCallContextValue } from "./voice-call-context";
 import ConnectedTime from "./connected-time";
 import RemoteScreen from "./remote-screen";
@@ -13,7 +15,9 @@ import CallControls from "./call-controls";
  * camera is cropped to fill, but only as far as `videoDisplaySize` allows —
  * filling outright turns a phone's portrait camera into a headless torso in
  * this landscape window. Our own camera rides in the corner. Minimise drops
- * back to the floating dock.
+ * back to the floating dock. With nothing to watch — the peer's share ended,
+ * or we took it over — the person stays on the page instead, the way the
+ * desktop call window does, so full window is never a dead end.
  */
 export default function CallTheater({
   call,
@@ -23,15 +27,17 @@ export default function CallTheater({
   onRequestLeave,
 }: {
   call: VoiceCallContextValue;
-  stream: MediaStream;
+  stream: MediaStream | null;
   kind: "screen" | "camera";
   onMinimize: () => void;
   onRequestLeave?: () => void;
 }) {
   const { view } = call;
-  const title = kind === "screen"
-    ? (view.peerName ? `${view.peerName} is sharing their screen` : "Shared screen")
-    : (view.peerName || "Video call");
+  const title = !stream
+    ? (view.peerName || "Call")
+    : kind === "screen"
+      ? (view.peerName ? `${view.peerName} is sharing their screen` : "Shared screen")
+      : (view.peerName || "Video call");
 
   return (
     <div
@@ -41,7 +47,14 @@ export default function CallTheater({
       aria-label={title}
     >
       <section className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface2)] shadow-2xl">
-        {kind === "screen" ? (
+        {!stream ? (
+          <div className="flex h-full w-full items-center justify-center">
+            <Avatar className="h-28 w-28">
+              <AvatarImage src={view.peerAvatar} alt="" />
+              <AvatarFallback className="text-3xl">{chatInitials(view.peerName || "Call")}</AvatarFallback>
+            </Avatar>
+          </div>
+        ) : kind === "screen" ? (
           <RemoteScreen stream={stream} className="h-full w-full bg-black object-contain" />
         ) : (
           <BalancedVideo stream={stream} className="h-full w-full" />
@@ -60,6 +73,9 @@ export default function CallTheater({
           <p className="text-xs text-[var(--text-muted)]">
             <ConnectedTime since={view.connectedAt} />
           </p>
+          {view.screenSharing ? (
+            <p className="text-xs font-medium text-[var(--green)]">You are sharing your screen</p>
+          ) : null}
           {view.cameraError ? (
             <p className="text-xs text-amber-500 [data-theme=light]:text-amber-700">{view.cameraError}</p>
           ) : null}

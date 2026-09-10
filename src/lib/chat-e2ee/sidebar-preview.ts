@@ -1,7 +1,11 @@
 import type { ChatConversation, ChatMessage } from "@/lib/api";
 import { decryptChatMessage, isMessageVaultUnlocked } from "./crypto";
 
-async function decryptDMPreview(
+// Chat-list previews of sealed conversations — DMs and personal groups alike.
+// The sidebar used to open DMs only, and the server sent no ciphertext for a
+// group, so every group's row read "Encrypted message" for good. Mobile keeps
+// the same rule in `message_e2ee/sidebar_preview.dart`.
+async function decryptPreview(
   conversation: ChatConversation,
   currentUserID: string,
 ) {
@@ -25,19 +29,21 @@ async function decryptDMPreview(
     thread_count: 0,
   };
   const decrypted = await decryptChatMessage(previewMessage, currentUserID);
+  // A row that will not open keeps the server's placeholder rather than
+  // saying "Unable to decrypt" down the whole list.
   return decrypted.decryption_failed
     ? conversation
     : { ...conversation, last_message_body: decrypted.body };
 }
 
-export async function decryptDMSidebarPreviews(
+export async function decryptSidebarPreviews(
   conversations: ChatConversation[],
   currentUserID: string,
 ) {
   if (!currentUserID || !isMessageVaultUnlocked()) return conversations;
   return Promise.all(
     conversations.map((conversation) =>
-      decryptDMPreview(conversation, currentUserID),
+      decryptPreview(conversation, currentUserID),
     ),
   );
 }

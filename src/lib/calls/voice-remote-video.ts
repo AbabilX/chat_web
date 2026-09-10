@@ -22,6 +22,11 @@ export class VoiceRemoteVideo {
     return this.map.received;
   }
 
+  /** The peer named a stream that has not arrived — see `VoiceMediaMap.awaiting`. */
+  get awaitingStream() {
+    return this.map.awaiting;
+  }
+
   applyMap(signal: VoiceCallSignal) {
     this.map.apply(signal);
     this.sync();
