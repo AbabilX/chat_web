@@ -88,8 +88,13 @@ export default function ChatHeader({
     });
   }
 
+  if (!activeConv || profileOpen) return null;
+
   return (
-    <header className="absolute inset-x-0 top-0 z-20 flex items-center gap-2 bg-transparent px-3 py-2 pr-3 lg:px-4 lg:py-3 lg:pr-4">
+    <header
+      className="relative z-10 flex shrink-0 items-center gap-2 border-b px-3 py-2 pr-3 lg:px-4 lg:py-3 lg:pr-4"
+      style={{ background: "var(--sig-bg)", borderColor: "var(--sig-border)" }}
+    >
       <Button
         type="button"
         variant="ghost"
@@ -103,7 +108,7 @@ export default function ChatHeader({
 
       <div className="flex-1" />
 
-      {profileOpen ? null : isGroup && activeConv ? (
+      {isGroup && activeConv ? (
         <>
           <div className="flex shrink-0 items-center gap-0 rounded-full border border-[var(--border)] bg-[var(--surface2)] shadow-sm">
             <button

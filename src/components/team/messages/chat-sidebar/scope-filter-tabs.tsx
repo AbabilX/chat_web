@@ -26,7 +26,7 @@ export default function ScopeFilterTabs() {
   if (!independentChat) return null;
 
   return (
-    <div className="flex shrink-0 items-center gap-1 px-2 pb-2">
+    <div className="flex shrink-0 items-center gap-1 px-3 pb-2">
       {TABS.map((tab) => (
         <button
           key={tab.value}
@@ -34,10 +34,10 @@ export default function ScopeFilterTabs() {
           onClick={() => setScopeFilter(tab.value)}
           aria-pressed={scopeFilter === tab.value}
           className={cn(
-            "flex-1 rounded-lg px-2 py-1 text-[11px] font-medium transition-colors",
+            "flex-1 rounded-full px-2 py-1 text-[12px] font-medium transition-colors",
             scopeFilter === tab.value
-              ? "bg-[var(--indigo)] text-white"
-              : "border border-[var(--border)] bg-[var(--surface2)] text-muted-foreground hover:text-[var(--text)]",
+              ? "bg-[var(--sig-fill-pressed)] text-[var(--sig-label)]"
+              : "text-[var(--sig-label-2)] hover:bg-[var(--sig-fill)] hover:text-[var(--sig-label)]",
           )}
         >
           {tab.label}

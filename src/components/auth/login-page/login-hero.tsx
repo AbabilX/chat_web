@@ -1,29 +1,26 @@
-import { SparklesIcon } from "hugeicons-react";
 import { LOGIN_COPY } from "./login-copy";
-import LoginQrPanel from "./login-qr-panel";
 
 export default function LoginHero() {
-  return (
-    <div className="relative z-10 flex w-full max-w-xl flex-col items-start gap-8 text-left">
-      <div>
-        <span
-          className="mb-[clamp(1rem,2.5vw,1.5rem)] inline-flex items-center gap-1.5 rounded-full border border-[#6D4AFF]/20 bg-[#6D4AFF]/[0.07] px-[clamp(0.75rem,1.5vw,0.875rem)] py-[clamp(0.25rem,0.8vw,0.375rem)] text-[clamp(11px,1.05vw,13px)] font-medium tracking-tight"
-          style={{ color: "#6D4AFF" }}
-        >
-          <SparklesIcon size={14} aria-hidden="true" className="shrink-0" />
-          {LOGIN_COPY.badge}
-        </span>
+  const steps = [LOGIN_COPY.step1, LOGIN_COPY.step2, LOGIN_COPY.step3];
 
-        <h1
-          id="hero-heading"
-          className="text-[clamp(1.65rem,4.2vw,3.25rem)] font-bold leading-[1.08] tracking-[-0.035em] text-[#0F172A]"
-        >
-          {LOGIN_COPY.headline}
-          <br />
-          <span className="text-[#6D4AFF]">{LOGIN_COPY.headlineAccent}</span>
-        </h1>
-      </div>
-      <LoginQrPanel />
+  return (
+    <div className="flex min-w-0 flex-1 flex-col justify-center pr-0 lg:pr-8">
+      <h1
+        id="hero-heading"
+        className="text-[28px] font-normal tracking-tight text-[#111b21]"
+      >
+        {LOGIN_COPY.title}
+      </h1>
+      <ol className="mt-8 space-y-4">
+        {steps.map((step, i) => (
+          <li key={step} className="flex items-start gap-3 text-[15px] text-[#3b4a54]">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#d1d7db] text-[13px] text-[#667781]">
+              {i + 1}
+            </span>
+            <span className="pt-0.5 leading-6">{step}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

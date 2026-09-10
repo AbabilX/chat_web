@@ -44,8 +44,8 @@ export default function ConversationListItem({
         {...shared}
         avatarNode={
           conv.type === "webhook" ? (
-            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--indigo)_15%,transparent)] text-[var(--indigo)]">
-              <Link01Icon size={17} />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--indigo)_15%,transparent)] text-[var(--indigo)]">
+              <Link01Icon size={22} />
             </div>
           ) : (
             <GroupAvatarStack
@@ -67,8 +67,8 @@ export default function ConversationListItem({
       <ConversationRow
         {...shared}
         avatarNode={
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--indigo)_15%,transparent)] text-[var(--indigo)]">
-            <Bookmark01Icon size={17} />
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--indigo)_15%,transparent)] text-[var(--indigo)]">
+            <Bookmark01Icon size={22} />
           </div>
         }
       />

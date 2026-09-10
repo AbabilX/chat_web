@@ -110,6 +110,7 @@ export function sendChatMessage(
     encryption_version?: number;
     encryption_key_version?: number;
     parent_id?: string | null;
+    quoted_message_id?: string | null;
     attachments?: ChatAttachmentInput[];
     mentioned_user_ids?: string[];
   },

@@ -44,7 +44,7 @@ export default function GroupAvatarStack({
 
   if (own) {
     const size =
-      variant === "row" ? (compact ? "size-5" : "size-7") : "size-9";
+      variant === "row" ? (compact ? "size-5" : "size-7") : "size-12";
     return (
       <Avatar className={cn(size, "shrink-0 rounded-lg")}>
         <AvatarImage src={own} alt="" className="rounded-lg object-cover" />
@@ -113,7 +113,7 @@ export default function GroupAvatarStack({
   if (stackPics.length === 0) {
     return (
       <div
-        className="flex size-9 items-center justify-center rounded-full text-muted-foreground"
+        className="flex size-12 items-center justify-center rounded-full text-muted-foreground"
         style={{ background: "var(--surface2)" }}
       >
         <UserGroupIcon size={18} />
@@ -123,7 +123,7 @@ export default function GroupAvatarStack({
 
   if (stackPics.length === 1) {
     return (
-      <Avatar className="size-9">
+      <Avatar className="size-12">
         <AvatarImage src={stackPics[0]} alt="" />
         <AvatarFallback className="text-[10px]">
           {chatInitials(name)}
@@ -134,7 +134,7 @@ export default function GroupAvatarStack({
 
   if (stackPics.length >= 4) {
     return (
-      <div className="grid size-9 grid-cols-2 grid-rows-2 gap-px overflow-hidden rounded-lg bg-[var(--surface2)]">
+      <div className="grid size-12 grid-cols-2 grid-rows-2 gap-px overflow-hidden rounded-lg bg-[var(--surface2)]">
         {stackPics.slice(0, 4).map((src, i) => (
           <Avatar key={`${src}-${i}`} size="sm" className="size-full rounded-none">
             <AvatarImage src={src} alt="" className="rounded-none" />
@@ -149,7 +149,7 @@ export default function GroupAvatarStack({
 
   if (stackPics.length === 3) {
     return (
-      <div className="grid size-9 grid-cols-2 grid-rows-2 gap-px overflow-hidden rounded-lg bg-[var(--surface2)]">
+      <div className="grid size-12 grid-cols-2 grid-rows-2 gap-px overflow-hidden rounded-lg bg-[var(--surface2)]">
         <Avatar
           size="sm"
           className="col-span-2 size-full h-auto min-h-0 rounded-none"
@@ -177,7 +177,7 @@ export default function GroupAvatarStack({
 
   // 2: overlapping circles
   return (
-    <div className="relative size-9">
+    <div className="relative size-12">
       <Avatar className="absolute left-0 top-0 size-6 ring-2 ring-(--surface)">
         <AvatarImage src={stackPics[0]} alt="" />
         <AvatarFallback className="text-[8px]">

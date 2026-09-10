@@ -55,10 +55,10 @@ export default function VoiceRecordingBar({
 
   return (
     <div
-      className="flex items-center gap-2 rounded-xl border px-2 py-2"
+      className="flex items-center gap-2 rounded-[18px] border px-2 py-2"
       style={{
-        borderColor: "var(--border)",
-        background: "var(--surface)",
+        borderColor: "transparent",
+        background: "var(--sig-bubble)",
       }}
     >
       <Button

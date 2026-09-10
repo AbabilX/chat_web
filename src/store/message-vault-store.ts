@@ -55,8 +55,11 @@ export const useMessageVaultStore = create<MessageVaultStore>((set) => ({
       }
       set({ state: outcome === "ready" ? "unlocked" : "unlock" });
     } catch (error) {
+      // A failed vault probe still means this browser has no key. Prefer the
+      // unlock screen (phone QR / recovery code) over a dead-end "api error"
+      // page — linking surfaces its own failure if the API is truly down.
       set({
-        state: "error",
+        state: "unlock",
         error: message(error, "Could not check secure messages"),
       });
     }

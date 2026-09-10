@@ -23,6 +23,7 @@ export default function DeviceLinkScreen({
   onNeedCode: () => void;
 }) {
   const check = useMessageVaultStore((s) => s.check);
+  const storeError = useMessageVaultStore((s) => s.error);
   const onLinked = useCallback(() => void check(), [check]);
   const link = useDeviceLink(true, onLinked);
 
@@ -69,13 +70,21 @@ export default function DeviceLinkScreen({
           </div>
         ) : null}
 
-        <LinkStatusNote error={link.error} status={link.status} />
+        <LinkStatusNote error={link.error || storeError} status={link.status} />
 
         {link.status === "expired" ||
         link.status === "denied" ||
-        link.status === "error" ? (
-          <Button className="mt-4 h-11 w-full" type="button" onClick={link.restart}>
-            Show a new code
+        link.status === "error" ||
+        storeError ? (
+          <Button
+            className="mt-4 h-11 w-full"
+            type="button"
+            onClick={() => {
+              if (storeError) void check();
+              else link.restart();
+            }}
+          >
+            {storeError ? "Try again" : "Show a new code"}
           </Button>
         ) : null}
 

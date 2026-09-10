@@ -1,0 +1,59 @@
+"use client";
+
+import { LoaderCircle, Play } from "lucide-react";
+import type { ChatMessageAttachment } from "@/lib/api";
+import { useLocalAsset } from "./use-local-asset";
+import { useAssetMenu } from "@/components/shared/use-asset-menu";
+
+function isVideo(attachment: ChatMessageAttachment) {
+  return (attachment.content_type ?? "").toLowerCase().startsWith("video/");
+}
+
+/** A lone photo or video keeps its own ratio instead of joining a mosaic. */
+export default function SingleMedia({ attachment }: { attachment: ChatMessageAttachment }) {
+  const localUrl = useLocalAsset(attachment.file_url);
+  const menu = useAssetMenu({
+    url: attachment.file_url,
+    fileName: attachment.file_name,
+    kind: isVideo(attachment) ? "video" : "image",
+  });
+
+  if (!localUrl) {
+    return (
+      <span className="flex h-40 w-[min(20rem,60vw)] items-center justify-center bg-black/20">
+        <LoaderCircle className="h-4 w-4 animate-spin text-white/70" />
+      </span>
+    );
+  }
+  if (isVideo(attachment)) {
+    return (
+      <span className="relative block" onContextMenu={menu.onContextMenu}>
+        {menu.menu}
+        <video
+          src={localUrl}
+          preload="metadata"
+          muted
+          playsInline
+          className="max-h-80 w-full max-w-[min(30rem,75vw)] object-cover"
+        />
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/55">
+            <Play className="h-5 w-5 fill-white text-white" />
+          </span>
+        </span>
+      </span>
+    );
+  }
+  return (
+    <>
+      <img
+        src={localUrl}
+        alt={attachment.file_name}
+        loading="lazy"
+        onContextMenu={menu.onContextMenu}
+        className="max-h-80 w-full max-w-[min(30rem,75vw)] object-cover"
+      />
+      {menu.menu}
+    </>
+  );
+}

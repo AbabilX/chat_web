@@ -1,64 +1,44 @@
 "use client";
 
-import {
-  MessageMultiple01Icon,
-  Message01Icon,
-  SparklesIcon,
-  UserGroup02Icon,
-  ZapIcon,
-} from "hugeicons-react";
+import { Call02Icon, ComputerIcon } from "hugeicons-react";
 import { t } from "@/lib/i18n";
 
-export default function ChatEmptyState({ language }: { language?: string | null }) {
+/** WhatsApp-style empty pane: a card about calling, then pick a chat. */
+export default function ChatEmptyState({
+  language,
+}: {
+  language?: string | null;
+}) {
   return (
-    <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-6 py-16">
+    <div className="flex flex-1 flex-col items-center justify-center px-6 py-16">
       <div
-        className="pointer-events-none absolute left-1/2 top-1/2 h-[32rem] w-[32rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[color-mix(in_srgb,var(--indigo)_6%,transparent)] blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="relative mb-7 flex h-36 w-36 items-center justify-center"
-        aria-hidden
+        className="w-full max-w-sm rounded-2xl px-8 py-10 text-center"
+        style={{ background: "var(--sig-surface-2)" }}
       >
-        <div className="absolute inset-0 rounded-[2.5rem] bg-[color-mix(in_srgb,var(--indigo)_25%,transparent)] blur-2xl" />
         <div
-          className="relative flex h-28 w-28 items-center justify-center rounded-[2rem] border border-white/20 shadow-2xl shadow-[var(--indigo-glow)]"
+          className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-2xl"
+          aria-hidden
           style={{
-            background:
-              "linear-gradient(145deg, var(--indigo-light) 0%, var(--indigo) 100%)",
-            transform: "perspective(400px) rotateX(8deg) rotateY(-12deg)",
+            background: "color-mix(in srgb, var(--sig-accent) 12%, transparent)",
           }}
         >
-          <span className="text-white">
-            <MessageMultiple01Icon size={52} strokeWidth={1.6} />
-          </span>
-          <span className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-[var(--surface)] text-[var(--text)] shadow-lg">
-            <SparklesIcon size={14} />
+          <span className="relative text-[var(--sig-accent)]">
+            <ComputerIcon size={56} />
+            <span className="absolute -right-1 -top-1 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--sig-surface-2)]">
+              <Call02Icon size={18} />
+            </span>
           </span>
         </div>
-      </div>
-      <div className="relative max-w-md text-center">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-          Workspace conversations
-        </p>
-        <h3 className="text-xl font-semibold tracking-tight text-[var(--text)]">
-          {t(language, "chat.emptyTitle")}
+        <h3 className="text-[20px] font-semibold text-[var(--sig-label)]">
+          {t(language, "chat.emptyCallTitle")}
         </h3>
-        <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
-          {t(language, "chat.emptyDesc")}
+        <p className="mt-2 text-[14px] leading-6 text-[var(--sig-label-2)]">
+          {t(language, "chat.emptyCallDesc")}
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2" aria-hidden="true">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
-            <Message01Icon size={14} /> Direct messages
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
-            <UserGroup02Icon size={14} /> Team channels
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
-            <ZapIcon size={14} /> Stay in sync
-          </span>
-        </div>
       </div>
+      <p className="mt-8 max-w-sm text-center text-[13px] text-[var(--sig-label-2)]">
+        {t(language, "chat.emptyDesc")}
+      </p>
     </div>
   );
 }

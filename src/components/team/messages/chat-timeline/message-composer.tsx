@@ -37,7 +37,7 @@ export default function MessageComposer({
     body: string,
     attachments: ChatAttachmentInput[],
     mentionedUserIds: string[],
-  ) => void | Promise<void>;
+  ) => void | boolean | Promise<void | boolean>;
   busy?: boolean;
   onPresign: (
     contentType: string,
@@ -192,9 +192,7 @@ export default function MessageComposer({
 
   if (recording) {
     return (
-      <div
-        className="shrink-0 bg-transparent px-3 py-2"
-      >
+      <div className="shrink-0 bg-[var(--sig-bg)] px-3 pb-3 pt-1">
         <VoiceRecordingBar
           elapsedMs={elapsedMs}
           preparing={preparing}
@@ -209,9 +207,7 @@ export default function MessageComposer({
   }
 
   return (
-    <div
-      className="shrink-0 bg-transparent px-3 py-2"
-    >
+    <div className="shrink-0 bg-[var(--sig-bg)] px-3 pb-3 pt-1">
       <CommentComposer
         ref={ref}
         value={value}
@@ -232,6 +228,12 @@ export default function MessageComposer({
         enableVoice
         enableFileDrop={false}
         secureSend={secureSend}
+        iconOnlySend
+        containerClassName="rounded-[18px] border-transparent"
+        containerStyle={{
+          background: "var(--sig-bubble)",
+          borderColor: "transparent",
+        }}
         onVoiceStart={() => void startVoice()}
         onSubmit={async (attachments) => {
           const raw = extractMentionUserIds(value);
@@ -243,8 +245,8 @@ export default function MessageComposer({
                 ]),
               )
             : raw;
-          await onSubmit(value, attachments, mentioned);
-          setValue("");
+          const sent = await onSubmit(value, attachments, mentioned);
+          if (sent !== false) setValue("");
         }}
       />
     </div>

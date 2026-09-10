@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 import { useTeamContext } from "@/components/team/shared/team-provider";
 import { useTeamPlan } from "@/components/team/shared/use-team-plan";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 import ChatSidebar from "./chat-sidebar";
 import ChatTimeline from "./chat-timeline";
 import ChatThreadPanel from "./chat-thread-panel";
@@ -27,8 +26,8 @@ import { useMessageRequest } from "./use-message-request";
 import type { ChatMessage } from "@/lib/api";
 import MessageVaultGate from "./message-vault-gate";
 import { useMessageVaultStore } from "@/store/message-vault-store";
+import { useUIStore } from "@/store/ui-store";
 import { editEncryptedChat } from "@/lib/chat-e2ee/dm-edit";
-import E2EEIntroDialog, { hasSeenE2EEIntro } from "./e2ee-intro-dialog";
 import MessageStorageNoticeDialog, {
   hasSeenMessageStorageNotice,
 } from "./message-storage-notice-dialog";
@@ -42,18 +41,18 @@ export default function MessagesClient() {
   const searchParams = useSearchParams();
   const { detail, loading: teamLoading, hasTeam } = useTeamContext();
   const [appLanguage, setAppLanguage] = useState<string | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
   // Team chat is a team feature — gate on the team's own plan, not the solo plan.
   const { isFreeTier } = useTeamPlan();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [forwardMessage, setForwardMessage] = useState<ChatMessage | null>(
     null,
   );
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
-  const [e2eeIntroDismissed, setE2EEIntroDismissed] = useState(false);
   const [storageNoticeDismissed, setStorageNoticeDismissed] = useState(false);
   const vaultState = useMessageVaultStore((s) => s.state);
   const checkMessageVault = useMessageVaultStore((s) => s.check);
+  const railCollapsed = useUIStore((s) => s.railCollapsed);
   // With independent chat live, messaging no longer depends on having a team.
   const independentChat = useChatStore((s) => s.independentChat);
   const chatReady = hasTeam || independentChat;
@@ -128,11 +127,8 @@ export default function MessagesClient() {
   const activeConv = useChatStore(selectActiveConversation);
   // Stands in for the composer on a DM a stranger opened; undefined otherwise.
   const messageRequest = useMessageRequest(activeConv ?? null);
-  const showE2EEIntro =
-    vaultState === "unlocked" && !e2eeIntroDismissed && !hasSeenE2EEIntro();
   const showStorageNotice =
     vaultState === "unlocked" &&
-    !showE2EEIntro &&
     !storageNoticeDismissed &&
     !hasSeenMessageStorageNotice(currentUserId);
   // Suppress bell rows / phone pushes for the conversation on screen.
@@ -150,16 +146,25 @@ export default function MessagesClient() {
   }, [threadRoot, threadChat.messages]);
 
   useEffect(() => {
-    void api.getMeSession().then((me) => {
-      useChatStore.getState().setCurrentUserId(me.id);
-      useChatStore.getState().setIndependentChat(!!me.independent_chat);
-      setAppLanguage(me.app_language ?? null);
-    });
+    void api
+      .getMeSession()
+      .then((me) => {
+        useChatStore.getState().setCurrentUserId(me.id);
+        useChatStore.getState().setIndependentChat(!!me.independent_chat);
+        setAppLanguage(me.app_language ?? null);
+        setSessionReady(true);
+      })
+      .catch(() => {
+        // Shell redirects on unauthorized; any other failure still lets the
+        // vault gate run so a phone QR can be offered instead of a blank page.
+        setSessionReady(true);
+      });
   }, []);
 
   useEffect(() => {
-    if (!teamLoading && chatReady) void checkMessageVault();
-  }, [teamLoading, chatReady, checkMessageVault]);
+    if (!sessionReady || teamLoading || !chatReady) return;
+    void checkMessageVault();
+  }, [sessionReady, teamLoading, chatReady, checkMessageVault]);
 
   useEffect(() => {
     if (vaultState === "unlocked") void fetchSidebar({ silent: true });
@@ -323,17 +328,37 @@ export default function MessagesClient() {
     body: string,
     attachments: Parameters<typeof sendMessage>[1],
     mentionedUserIds: string[],
-    parentId?: string | null,
+    quotedMessageId?: string | null,
   ) {
-    if (!activeConversationId) return;
+    if (!activeConversationId) return false;
     setSending(true);
     try {
       await sendMessage(
         body,
         attachments,
         mentionedUserIds,
-        parentId ?? threadRootId,
+        null,
+        quotedMessageId,
       );
+      return true;
+    } catch (e) {
+      toast.error(friendlyError(e, "Failed to send message"));
+      return false;
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function handleThreadSend(
+    body: string,
+    attachments: Parameters<typeof sendMessage>[1],
+    mentionedUserIds: string[],
+    parentId: string,
+  ) {
+    if (!activeConversationId) return;
+    setSending(true);
+    try {
+      await sendMessage(body, attachments, mentionedUserIds, parentId, null);
     } catch (e) {
       toast.error(friendlyError(e, "Failed to send message"));
     } finally {
@@ -406,47 +431,59 @@ export default function MessagesClient() {
     onOpenProfile: openProfile,
   };
 
+  if ((!sessionReady || teamLoading) && vaultState === "checking") {
+    return (
+      <div className="flex h-[100dvh] items-center justify-center">
+        <p className="text-sm text-[var(--sig-label-2)]">
+          Preparing secure messages…
+        </p>
+      </div>
+    );
+  }
+
   if (!teamLoading && !chatReady) {
     return (
-      <div className="flex h-[calc(100dvh-3.5rem)] items-center justify-center px-4 text-center lg:h-[100dvh]">
+      <div className="flex h-[100dvh] items-center justify-center px-4 text-center">
         <div>
-          <h2 className="text-base font-semibold text-[var(--text)]">
-            Create a team first
+          <h2 className="text-base font-semibold text-[var(--sig-label)]">
+            Chat is not available yet
           </h2>
-          <p className="mt-2 text-sm text-[var(--text-muted)]">
-            Direct messages are available after you create or join a team.
+          <p className="mt-2 text-sm text-[var(--sig-label-2)]">
+            This app is chat-only. Messaging will appear here when it is enabled
+            for your account.
           </p>
-          <Button
-            type="button"
-            className="mt-4"
-            onClick={() => router.push("/user/workspace/teamMembers")}
-          >
-            Go to Team Members
-          </Button>
         </div>
       </div>
     );
   }
 
-  if (!teamLoading && chatReady && vaultState !== "unlocked") {
+  if (
+    sessionReady &&
+    !teamLoading &&
+    chatReady &&
+    vaultState !== "unlocked"
+  ) {
     return <MessageVaultGate />;
   }
 
   if (sidebarLoading && dms.length === 0 && channels.length === 0) {
     return (
-      <div className="flex h-[calc(100dvh-3.5rem)] items-center justify-center lg:h-[100dvh]">
-        <p className="text-sm text-[var(--text-muted)]">Loading chat…</p>
+      <div className="flex h-[100dvh] items-center justify-center">
+        <p className="text-sm text-[var(--sig-label-2)]">Loading chat…</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 lg:h-[100dvh]">
+    <div className="flex h-[100dvh] min-h-0">
       <ChatSidebar
         {...sidebarProps}
-        collapsed={sidebarCollapsed}
-        onCollapsedChange={setSidebarCollapsed}
-        className="fixed left-0 top-14 z-40 hidden h-[calc(100dvh-3.5rem)] lg:top-0 lg:flex lg:h-[100dvh]"
+        className={cn(
+          "h-[100dvh]",
+          activeConv ? "hidden lg:flex" : "flex",
+          "lg:fixed lg:top-0 lg:z-40",
+          railCollapsed ? "lg:left-0" : "lg:left-12",
+        )}
       />
 
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
@@ -457,8 +494,8 @@ export default function MessagesClient() {
 
       <div
         className={cn(
-          "relative flex min-w-0 flex-1 flex-col",
-          sidebarCollapsed ? "lg:ml-14" : "lg:ml-80",
+          "relative min-w-0 flex-1 flex-col lg:ml-80",
+          activeConv ? "flex" : "hidden lg:flex",
         )}
       >
         <ChatHeader
@@ -472,7 +509,7 @@ export default function MessagesClient() {
         <div className="flex min-h-0 flex-1">
           <main
             className="flex min-w-0 flex-1 flex-col"
-            style={{ background: "var(--bg)" }}
+            style={{ background: "var(--sig-bg)" }}
           >
             {activeConv ? (
               <ChatTimeline
@@ -485,8 +522,8 @@ export default function MessagesClient() {
                 onLoadMore={mainChat.loadMore}
                 currentUserId={currentUserId}
                 mentionMembers={mentionMembers}
-                onSend={(body, attachments, mentioned) =>
-                  handleSend(body, attachments, mentioned, null)
+                onSend={(body, attachments, mentioned, quotedMessageId) =>
+                  handleSend(body, attachments, mentioned, quotedMessageId)
                 }
                 onToggleReaction={handleToggleReaction}
                 onOpenThread={(id) => {
@@ -558,7 +595,7 @@ export default function MessagesClient() {
               busy={sending}
               onClose={() => setThreadRootId(null)}
               onSubmitReply={(body, parentId, attachments) =>
-                handleSend(
+                handleThreadSend(
                   body,
                   attachments,
                   extractMentionUserIds(body),
@@ -607,10 +644,6 @@ export default function MessagesClient() {
         members={mentionMembers}
         language={appLanguage}
         currentUserId={currentUserId ?? undefined}
-      />
-      <E2EEIntroDialog
-        open={showE2EEIntro}
-        onDone={() => setE2EEIntroDismissed(true)}
       />
       {currentUserId ? (
         <MessageStorageNoticeDialog

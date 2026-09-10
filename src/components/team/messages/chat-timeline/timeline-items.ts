@@ -4,11 +4,22 @@ import {
   chatMessageDateKey,
   chatMessageDateLabel,
 } from "../chat-utils";
+import { sameGroup } from "./chat-bubble/bubble-shape";
 
 export type TimelineItem =
   | { kind: "divider"; key: string; label: string }
-  | { kind: "message"; key: string; message: ChatMessage }
-  | { kind: "call-events"; key: string; messages: ChatMessage[] };
+  | {
+      kind: "message";
+      key: string;
+      message: ChatMessage;
+      groupedAbove: boolean;
+      groupedBelow: boolean;
+    }
+  | {
+      kind: "call-events";
+      key: string;
+      messages: ChatMessage[];
+    };
 
 export function isCallTimelineEvent(message: ChatMessage): boolean {
   return message.message_type === "voice_call" || message.message_type === "group_call";
@@ -16,25 +27,38 @@ export function isCallTimelineEvent(message: ChatMessage): boolean {
 
 export function buildTimelineItems(messages: ChatMessage[]): TimelineItem[] {
   const items: TimelineItem[] = [];
-  let previousDate = "";
-  for (const message of messages) {
+  let lastDateKey = "";
+
+  messages.forEach((message, index) => {
     const activityAt = chatMessageActivityAt(message);
-    const date = chatMessageDateKey(activityAt);
-    if (date !== previousDate) {
+    const dateKey = chatMessageDateKey(activityAt);
+    const startsDay = dateKey !== lastDateKey;
+    if (startsDay) {
       items.push({
         kind: "divider",
-        key: `date-${date}`,
+        key: `date-${dateKey}`,
         label: chatMessageDateLabel(activityAt),
       });
-      previousDate = date;
+      lastDateKey = dateKey;
     }
-    items.push({ kind: "message", key: message.id, message });
-  }
+
+    const previous = index > 0 ? messages[index - 1] : null;
+    const next = index + 1 < messages.length ? messages[index + 1] : null;
+    const nextStartsDay =
+      !!next && chatMessageDateKey(chatMessageActivityAt(next)) !== dateKey;
+
+    items.push({
+      kind: "message",
+      key: message.id,
+      message,
+      groupedAbove: !startsDay && sameGroup(previous, message),
+      groupedBelow: !nextStartsDay && sameGroup(message, next),
+    });
+  });
+
   return collapseConsecutiveCallEvents(items);
 }
 
-/** Same-day consecutive call rows collapse into one disclosure. A date
- *  divider already splits days, so this only joins adjacent call messages. */
 function collapseConsecutiveCallEvents(items: TimelineItem[]): TimelineItem[] {
   const collapsed: TimelineItem[] = [];
   let index = 0;

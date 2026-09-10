@@ -782,3 +782,44 @@ pre::selection,
     background-position: center bottom;
   }
 }
+
+/* Chat surface tokens — match desktop. Separate from --bg / --surface. */
+:root {
+  --sig-bg: #191919;
+  --sig-surface-2: #1e1e1e;
+  --sig-surface-3: #282828;
+  --sig-surface-4: #373737;
+  --sig-fill: rgba(150, 150, 150, 0.12);
+  --sig-fill-pressed: rgba(150, 150, 150, 0.16);
+  --sig-fill-strong: rgba(150, 150, 150, 0.2);
+  --sig-bubble: #323232;
+  --sig-preview-card: #252525;
+  --sig-label: rgba(255, 255, 255, 0.9);
+  --sig-label-2: rgba(255, 255, 255, 0.6);
+  --sig-accent: var(--indigo);
+  --sig-border: rgba(255, 255, 255, 0.06);
+  --sig-label-3: #848484;
+  --sig-divider: #4a4a4a;
+  --sig-danger: #f44336;
+  --sig-header-height: 52px;
+  --sig-row-height: 72px;
+}
+
+[data-theme="light"] {
+  --sig-bg: #fafafa;
+  --sig-surface-2: #f5f5f5;
+  --sig-surface-3: #f0f0f0;
+  --sig-surface-4: #e6e6e6;
+  --sig-fill: rgba(125, 125, 125, 0.08);
+  --sig-fill-pressed: rgba(125, 125, 125, 0.12);
+  --sig-fill-strong: rgba(125, 125, 125, 0.16);
+  --sig-bubble: #ebebeb;
+  --sig-preview-card: #f6f6f6;
+  --sig-label: rgba(0, 0, 0, 0.9);
+  --sig-label-2: rgba(0, 0, 0, 0.6);
+  --sig-accent: var(--indigo);
+  --sig-border: rgba(0, 0, 0, 0.06);
+  --sig-label-3: #848484;
+  --sig-divider: #dedede;
+  --sig-danger: #f44336;
+}

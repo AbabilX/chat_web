@@ -328,6 +328,7 @@ interface ChatState {
     attachments: ChatAttachmentInput[],
     mentionedUserIds: string[],
     parentId?: string | null,
+    quotedMessageId?: string | null,
   ) => Promise<ChatMessage | null>;
   setSending: (sending: boolean) => void;
 
@@ -408,7 +409,11 @@ export const useChatStore = create<ChatState>()(
           // With independent chat live the sidebar is membership-driven and can
           // be narrowed to one scope; otherwise it stays the workspace list.
           const { independentChat, scopeFilter } = get();
-          const data = await api.listAllChatConversations("personal");
+          const data = independentChat
+            ? await api.listAllChatConversations(
+                scopeFilter === "all" ? undefined : scopeFilter,
+              )
+            : await api.listChatConversations();
           const previewDms = await decryptDMSidebarPreviews(
             data.dms ?? [],
             get().currentUserId,
@@ -850,16 +855,13 @@ export const useChatStore = create<ChatState>()(
         }
       },
 
-      sendMessage: async (body, attachments, mentionedUserIds, parentId) => {
+      sendMessage: async (body, attachments, mentionedUserIds, parentId, quotedMessageId) => {
         const { activeConversationId, threadRootId, currentUserId, dms, channels } =
           get();
         if (!activeConversationId) return null;
         const dm = dms.find(
           (conversation) => conversation.id === activeConversationId,
         );
-        // Personal groups live in `channels` beside workspace channels, so the
-        // lookup has to cover both lists and the predicate decides, not which
-        // array it came out of.
         const conversation =
           dm ??
           channels.find(
@@ -873,6 +875,7 @@ export const useChatStore = create<ChatState>()(
           sendChatMessageDurably(currentUserId, activeConversationId, {
             ...encrypted,
             parent_id: parentId,
+            quoted_message_id: quotedMessageId,
             attachments,
             mentioned_user_ids: dm ? [] : mentionedUserIds,
           });

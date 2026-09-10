@@ -121,6 +121,8 @@ export type ChatMessage = {
   /** Client-only display state; never persisted by the API. */
   decryption_failed?: boolean;
   parent_id?: string | null;
+  /** Signal-style quoted reply — stays in the main feed. */
+  quote?: ChatMessageQuote;
   created_at: string;
   /** Main-timeline sort key: created_at, or latest thread reply time. */
   last_activity_at?: string;
@@ -173,6 +175,18 @@ export type ChatMessage = {
     delivered_devices: number;
     read_devices: number;
   };
+};
+
+export type ChatMessageQuote = {
+  message_id: string;
+  user_id?: string;
+  user_name?: string;
+  body?: string;
+  encrypted_body?: string;
+  encryption_nonce?: string;
+  encryption_key_version?: number;
+  attachment_type?: string;
+  deleted?: boolean;
 };
 
 // The end-to-end encryption types live next door; re-exported so every

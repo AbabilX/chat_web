@@ -1,6 +1,5 @@
 "use client";
 
-import { Message01Icon } from "hugeicons-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import PresenceAvatar from "@/components/shared/presence-avatar";
 import PeerCallOrStatus from "@/components/shared/peer-call-or-status";
@@ -45,7 +44,6 @@ export default function ConversationRow({
   onClick: () => void;
   prefix?: React.ReactNode;
   showAvatar?: boolean;
-  /** Custom node rendered in the avatar slot (e.g. a group avatar stack). */
   avatarNode?: React.ReactNode;
   onAvatarClick?: () => void;
 }) {
@@ -61,20 +59,17 @@ export default function ConversationRow({
       type="button"
       onClick={onClick}
       className={cn(
-        "group flex w-full gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
-        active
-          ? "bg-[color-mix(in_srgb,var(--indigo)_15%,transparent)]"
-          : "hover:bg-white/[0.04]",
-        hasUnread && "bg-white/[0.02]",
+        "group flex h-[72px] w-full items-center gap-3 overflow-hidden rounded-[10px] px-3.5 py-2 text-left transition-colors",
+        active ? "bg-[var(--sig-fill-pressed)]" : "hover:bg-[var(--sig-fill)]",
       )}
     >
       {avatarNode ? (
-        <div className="mt-0.5 shrink-0">{avatarNode}</div>
+        <div className="shrink-0">{avatarNode}</div>
       ) : showAvatar ? (
-        <PresenceAvatar userId={peerUserId} className="mt-0.5">
+        <PresenceAvatar userId={peerUserId}>
           <Avatar
             className={cn(
-              "h-9 w-9 shrink-0 rounded-md",
+              "h-12 w-12 shrink-0 rounded-full",
               onAvatarClick && "cursor-pointer",
             )}
             onClick={
@@ -87,15 +82,18 @@ export default function ConversationRow({
             }
           >
             <AvatarImage src={avatarUrl} alt="" />
-            <AvatarFallback className="rounded-md text-[10px]">
+            <AvatarFallback className="text-sm">
               {avatarFallback ?? chatInitials(title)}
             </AvatarFallback>
           </Avatar>
         </PresenceAvatar>
       ) : (
         <div
-          className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sm font-semibold text-muted-foreground"
-          style={{ background: "var(--surface2)" }}
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-base font-semibold"
+          style={{
+            background: "var(--sig-surface-3)",
+            color: "var(--sig-label-2)",
+          }}
         >
           {prefix ?? "#"}
         </div>
@@ -104,10 +102,8 @@ export default function ConversationRow({
         <div className="flex items-center gap-2">
           <span
             className={cn(
-              "min-w-0 truncate text-sm",
-              hasUnread
-                ? "font-bold text-[var(--text)]"
-                : "font-medium text-[var(--text)]",
+              "min-w-0 truncate text-[14px] text-[var(--sig-label)]",
+              hasUnread ? "font-semibold" : "font-normal",
             )}
           >
             {title}
@@ -119,21 +115,24 @@ export default function ConversationRow({
             {lastMessageAt ? (
               <span
                 className={cn(
-                  "text-[11px] text-muted-foreground",
-                  hasUnread && "font-medium text-[var(--text-muted)]",
+                  "text-[12px] text-[var(--sig-label-2)]",
+                  hasUnread && "font-medium",
                 )}
               >
                 {chatListTime(lastMessageAt)}
               </span>
             ) : null}
             {hasUnread ? (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--indigo)] px-1 text-[10px] font-bold text-white">
+              <span
+                className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] font-medium text-white"
+                style={{ background: "var(--sig-accent)" }}
+              >
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             ) : null}
           </div>
         </div>
-        <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
+        <div className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden">
           <ChatMessagePreview
             body={lastMessageBody}
             attachmentType={lastMessageAttachmentType}
@@ -141,16 +140,10 @@ export default function ConversationRow({
             attachments={lastMessageAttachments}
             prefix={previewPrefix}
             className={cn(
-              "min-w-0 flex-1",
-              hasUnread && "font-medium text-[var(--text-muted)]",
+              "min-w-0 flex-1 text-[14px] text-[var(--sig-label-2)]",
+              hasUnread && "font-medium text-[var(--sig-label)]",
             )}
           />
-          {!hasUnread ? (
-            <Message01Icon
-              size={14}
-              className="ml-auto shrink-0 opacity-0 transition-opacity group-hover:opacity-40"
-            />
-          ) : null}
         </div>
       </div>
     </button>

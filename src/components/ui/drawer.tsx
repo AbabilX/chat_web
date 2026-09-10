@@ -3,9 +3,10 @@
 import * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 import { cn } from "@/lib/utils";
+import { useUIStore } from "@/store/ui-store";
 
 const Drawer = ({
-  shouldScaleBackground = true,
+  shouldScaleBackground = false,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
   <DrawerPrimitive.Root
@@ -19,44 +20,62 @@ const DrawerTrigger = DrawerPrimitive.Trigger;
 const DrawerPortal = DrawerPrimitive.Portal;
 const DrawerClose = DrawerPrimitive.Close;
 
+/** Rail is z-60; the sheet must paint above it and start after it on lg. */
+function useRailClearance() {
+  const railCollapsed = useUIStore((s) => s.railCollapsed);
+  return railCollapsed ? undefined : "lg:left-12";
+}
+
 const DrawerOverlay = React.forwardRef<
   React.ComponentRef<typeof DrawerPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <DrawerPrimitive.Overlay
-    ref={ref}
-    className={cn("fixed inset-0 z-50 bg-black/60 backdrop-blur-sm", className)}
-    {...props}
-  />
-));
+>(({ className, ...props }, ref) => {
+  const railClearance = useRailClearance();
+  return (
+    <DrawerPrimitive.Overlay
+      ref={ref}
+      className={cn(
+        "fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm",
+        railClearance,
+        className,
+      )}
+      {...props}
+    />
+  );
+});
 DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName;
 
 const DrawerContent = React.forwardRef<
   React.ComponentRef<typeof DrawerPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <DrawerPortal>
-    <DrawerOverlay />
-    <DrawerPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-2xl border",
-        className,
-      )}
-      style={{
-        borderColor: "var(--border)",
-        backgroundColor: "var(--surface)",
-        color: "var(--text)",
-      }}
-      {...props}>
-      <div
-        className="mx-auto mt-3 h-1.5 w-12 rounded-full"
-        style={{ backgroundColor: "var(--border)" }}
-      />
-      {children}
-    </DrawerPrimitive.Content>
-  </DrawerPortal>
-));
+>(({ className, children, ...props }, ref) => {
+  const railClearance = useRailClearance();
+  return (
+    <DrawerPortal>
+      <DrawerOverlay />
+      <DrawerPrimitive.Content
+        ref={ref}
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-[80] mt-24 flex h-auto flex-col rounded-t-2xl border",
+          railClearance,
+          className,
+        )}
+        style={{
+          borderColor: "var(--border)",
+          backgroundColor: "var(--surface)",
+          color: "var(--text)",
+        }}
+        {...props}
+      >
+        <div
+          className="mx-auto mt-3 h-1.5 w-12 rounded-full"
+          style={{ backgroundColor: "var(--border)" }}
+        />
+        {children}
+      </DrawerPrimitive.Content>
+    </DrawerPortal>
+  );
+});
 DrawerContent.displayName = "DrawerContent";
 
 const DrawerHeader = ({

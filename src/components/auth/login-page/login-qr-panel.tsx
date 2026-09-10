@@ -28,26 +28,34 @@ export default function LoginQrPanel() {
             : "";
 
   return (
-    <div className="flex w-full max-w-[320px] flex-col items-start gap-4">
-      <div className="flex h-[280px] w-[280px] items-center justify-center rounded-2xl bg-white p-3 shadow-[0_8px_32px_rgba(15,23,42,0.08)]">
+    <div className="flex w-full shrink-0 flex-col items-center lg:w-[280px]">
+      <div className="flex h-[264px] w-[264px] items-center justify-center">
         {imageUrl && !dead ? (
           // eslint-disable-next-line @next/next/no-img-element -- data URI QR
-          <img src={imageUrl} alt={LOGIN_COPY.qrTitle} className="h-full w-full" />
+          <img
+            src={imageUrl}
+            alt={LOGIN_COPY.qrTitle}
+            className="h-full w-full"
+          />
         ) : (
-          <span className="px-6 text-center text-sm text-neutral-600">
+          <span className="px-6 text-center text-sm text-[#667781]">
             {message || "…"}
           </span>
         )}
       </div>
-      <p className="text-left text-sm text-[#475569]">{LOGIN_COPY.qrHint}</p>
       {status === "pending" && secondsLeft > 0 ? (
-        <p className="text-xs text-[#64748b]">
+        <p className="mt-3 text-xs text-[#667781]">
           {LOGIN_COPY.qrExpiresIn} {Math.floor(secondsLeft / 60)}:
           {String(secondsLeft % 60).padStart(2, "0")}
         </p>
       ) : null}
       {dead ? (
-        <Button size="sm" type="button" onClick={() => void restart()}>
+        <Button
+          size="sm"
+          type="button"
+          className="mt-3"
+          onClick={() => void restart()}
+        >
           {LOGIN_COPY.qrRefresh}
         </Button>
       ) : null}

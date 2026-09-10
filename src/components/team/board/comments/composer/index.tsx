@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
   type Ref,
 } from "react";
@@ -137,6 +138,9 @@ export default function CommentComposer({
   onVoiceStart,
   secureSend = false,
   enableFileDrop = true,
+  iconOnlySend = false,
+  containerClassName,
+  containerStyle,
   ref,
 }: {
   value: string;
@@ -180,6 +184,10 @@ export default function CommentComposer({
   secureSend?: boolean;
   /** When false, parent owns paste/drop (e.g. full chat pane). */
   enableFileDrop?: boolean;
+  /** Chat: Signal's bare send arrow without the lock glyph or label. */
+  iconOnlySend?: boolean;
+  containerClassName?: string;
+  containerStyle?: CSSProperties;
   ref?: Ref<CommentComposerHandle>;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -478,11 +486,13 @@ export default function CommentComposer({
           "relative overflow-hidden rounded-lg border border-[var(--kanban-input-border)] transition-colors",
           singleLine ? "flex items-end gap-1.5 px-2 py-1" : "flex max-h-72 flex-col",
           dragActive && "ring-2 ring-inset ring-indigo-500/70",
+          containerClassName,
         )}
         style={{
           borderColor: dragActive
             ? "var(--indigo)"
             : "color-mix(in srgb, var(--kanban-input-border) 55%, transparent)",
+          ...containerStyle,
         }}>
         {dragActive ? <FileDropOverlay className="rounded-lg" compact /> : null}
         {singleLine && (
@@ -707,16 +717,20 @@ export default function CommentComposer({
               <Button
                 type="button"
                 size="sm"
-                className="h-7 shrink-0 gap-1.5 rounded-md px-2.5"
+                className={cn(
+                  "h-7 shrink-0 gap-1.5 rounded-md px-2.5",
+                  iconOnlySend && "h-8 w-8 rounded-full px-0",
+                )}
                 disabled={!canPost}
                 aria-label={submitLabel}
+                title={iconOnlySend ? submitLabel : undefined}
                 onClick={() => void handleSubmit()}>
-                {secureSend ? (
+                {secureSend && !iconOnlySend ? (
                   <LockKeyhole size={15} className={cn(busy && "animate-pulse")} />
                 ) : (
                   <SentIcon size={16} className={cn(busy && "animate-pulse")} />
                 )}
-                <span>{submitLabel}</span>
+                {iconOnlySend ? null : <span>{submitLabel}</span>}
               </Button>
             </div>
           </div>

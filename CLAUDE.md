@@ -27,9 +27,28 @@ in both trees, so a clean eslint run is not the bar.
 ## Layout
 
 - `src/app/**/page.tsx` — Server Components only. They compose feature folders.
-- `src/components/auth/login-page/` — login screen (`index.tsx` + parts). Sign-in is phone QR only.
+- `src/components/auth/login-page/` — WhatsApp-Web-style QR login. Sign-in is phone QR only.
+- `src/components/sidebar/app-mode-rail/` — left icon rail (Chats + theme + account). Chat-only: no Board/Wall.
 - `src/components/user-shell/` — signed-in chrome + call/chat providers
-- `src/components/team/messages/` — chat UI (copied from Ababil-X-frontend)
+- `src/components/team/messages/` — chat UI (desktop-style: rail | list | pane)
+
+Three columns on desktop: icon rail, conversation list (`--sig-*` tokens, same header as `ababilxdesktopcode`), message pane. No Ababil-X-frontend floating compose bar or overview link — this app is chat-only.
+
+Message timeline uses the desktop bubble system (`chat-timeline/chat-bubble/`): one neutral `--sig-bubble` fill for both sides, grouped corners, hover toolbar, quoted replies, server-side link previews (`GET /api/link-preview`), and a Signal-style media lightbox.
+
+## Sidebar search is chats, then messages
+
+`chat-sidebar/conversation-search.ts`. Same order as Signal-Android and
+`ababilx-mobile`: name-matched threads first, keyword hits in bodies below. A
+conversation can appear in both.
+
+## Vault gate prefers unlock over a dead-end error
+
+`message-vault-gate.tsx` / `message-vault-store.check`. If probing the vault
+fails, this browser still has no key — so the gate opens the phone-QR /
+recovery unlock screen instead of an "api error · Try again" page that never
+offered a way to get one. Session is waited on before the probe so a cold
+chat open does not race an unfinished sign-in.
 
 ## Run
 
