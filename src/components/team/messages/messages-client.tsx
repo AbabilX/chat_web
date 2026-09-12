@@ -39,7 +39,7 @@ export default function MessagesClient() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { detail, loading: teamLoading, hasTeam } = useTeamContext();
+  const { detail, loading: teamLoading } = useTeamContext();
   const [appLanguage, setAppLanguage] = useState<string | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
   // Team chat is a team feature — gate on the team's own plan, not the solo plan.
@@ -53,9 +53,6 @@ export default function MessagesClient() {
   const vaultState = useMessageVaultStore((s) => s.state);
   const checkMessageVault = useMessageVaultStore((s) => s.check);
   const railCollapsed = useUIStore((s) => s.railCollapsed);
-  // With independent chat live, messaging no longer depends on having a team.
-  const independentChat = useChatStore((s) => s.independentChat);
-  const chatReady = hasTeam || independentChat;
 
   // Conversation ids are UUIDs — ignore malformed deep links (e.g. a name slug)
   // instead of passing them to the API.
@@ -150,7 +147,6 @@ export default function MessagesClient() {
       .getMeSession()
       .then((me) => {
         useChatStore.getState().setCurrentUserId(me.id);
-        useChatStore.getState().setIndependentChat(!!me.independent_chat);
         setAppLanguage(me.app_language ?? null);
         setSessionReady(true);
       })
@@ -162,22 +158,22 @@ export default function MessagesClient() {
   }, []);
 
   useEffect(() => {
-    if (!sessionReady || teamLoading || !chatReady) return;
+    if (!sessionReady || teamLoading) return;
     void checkMessageVault();
-  }, [sessionReady, teamLoading, chatReady, checkMessageVault]);
+  }, [sessionReady, teamLoading, checkMessageVault]);
 
   useEffect(() => {
     if (vaultState === "unlocked") void fetchSidebar({ silent: true });
   }, [vaultState, fetchSidebar]);
 
   useConversationUrlSync({
-    ready: !teamLoading && chatReady,
+    ready: !teamLoading,
     convParam,
     activeConversationId,
   });
 
   useEffect(() => {
-    if (teamLoading || !chatReady) return;
+    if (teamLoading) return;
     if (vaultState !== "unlocked") return;
     if (!activeConversationId || !currentUserId) return;
     void loadFeed(activeConversationId, null, { force: true });
@@ -185,7 +181,6 @@ export default function MessagesClient() {
     clearUnread(activeConversationId);
   }, [
     teamLoading,
-    chatReady,
     vaultState,
     activeConversationId,
     currentUserId,
@@ -194,13 +189,12 @@ export default function MessagesClient() {
   ]);
 
   useEffect(() => {
-    if (teamLoading || !chatReady) return;
+    if (teamLoading) return;
     if (vaultState !== "unlocked") return;
     if (!threadRootId || !activeConversationId || !currentUserId) return;
     void loadFeed(activeConversationId, threadRootId);
   }, [
     teamLoading,
-    chatReady,
     vaultState,
     threadRootId,
     activeConversationId,
@@ -441,28 +435,7 @@ export default function MessagesClient() {
     );
   }
 
-  if (!teamLoading && !chatReady) {
-    return (
-      <div className="flex h-[100dvh] items-center justify-center px-4 text-center">
-        <div>
-          <h2 className="text-base font-semibold text-[var(--sig-label)]">
-            Chat is not available yet
-          </h2>
-          <p className="mt-2 text-sm text-[var(--sig-label-2)]">
-            This app is chat-only. Messaging will appear here when it is enabled
-            for your account.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (
-    sessionReady &&
-    !teamLoading &&
-    chatReady &&
-    vaultState !== "unlocked"
-  ) {
+  if (sessionReady && !teamLoading && vaultState !== "unlocked") {
     return <MessageVaultGate />;
   }
 

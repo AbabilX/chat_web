@@ -16,9 +16,7 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useChatStore } from "@/store/chat-store";
 import { useUIStore } from "@/store/ui-store";
-import { useTeamContextOptional } from "@/components/team/shared/team-provider";
-import CreateChannelDialog from "./create-channel-dialog";
-import NewDmDialog from "./new-dm-dialog";
+import CreateWebhookFeedDialog from "./create-webhook-feed-dialog";
 import ConnectionsDialog from "../chat-connections/connections-dialog";
 import CreatePersonalGroupDialog from "../chat-connections/create-personal-group-dialog";
 
@@ -59,44 +57,30 @@ export default function ChatSidebar({
   className?: string;
   onOpenProfile?: (userId: string) => void;
 }) {
-  const [createGroupOpen, setCreateGroupOpen] = useState(false);
-  const [composeOpen, setComposeOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [peopleOpen, setPeopleOpen] = useState(false);
   const [personalGroupOpen, setPersonalGroupOpen] = useState(false);
-  const currentUserId = useChatStore((s) => s.currentUserId);
+  const [webhookFeedOpen, setWebhookFeedOpen] = useState(false);
   const upsertChannel = useChatStore((s) => s.upsertChannel);
-  const independentChat = useChatStore((s) => s.independentChat);
   const railCollapsed = useUIStore((s) => s.railCollapsed);
   const toggleRail = useUIStore((s) => s.toggleRail);
-  const hasTeam = !!useTeamContextOptional()?.detail?.team?.id;
-  const teamName = useTeamContextOptional()?.detail?.team?.name ?? "";
 
   function handleGroupCreated(channel: ChatConversation) {
     upsertChannel(channel);
     onSelect(channel.id);
   }
 
-  function openCompose() {
-    if (!hasTeam && independentChat) setPeopleOpen(true);
-    else setComposeOpen(true);
-  }
-
   useEffect(() => {
     function openPeople() {
       setPeopleOpen(true);
     }
-    function openComposeEvent() {
-      if (!hasTeam && independentChat) setPeopleOpen(true);
-      else setComposeOpen(true);
-    }
     window.addEventListener("chat:open-people", openPeople);
-    window.addEventListener("chat:open-compose", openComposeEvent);
+    window.addEventListener("chat:open-compose", openPeople);
     return () => {
       window.removeEventListener("chat:open-people", openPeople);
-      window.removeEventListener("chat:open-compose", openComposeEvent);
+      window.removeEventListener("chat:open-compose", openPeople);
     };
-  }, [hasTeam, independentChat]);
+  }, []);
 
   return (
     <aside
@@ -112,17 +96,15 @@ export default function ChatSidebar({
         <h1 className="min-w-0 flex-1 truncate text-[24px] font-bold leading-tight text-[var(--sig-label)]">
           {t(language, "chat.chats")}
         </h1>
-        {independentChat ? (
-          <HeaderIconButton
-            label="Add people — find someone and start a chat"
-            onClick={() => setPeopleOpen(true)}
-          >
-            <UserAdd01Icon size={19} />
-          </HeaderIconButton>
-        ) : null}
+        <HeaderIconButton
+          label="Add people — find someone and start a chat"
+          onClick={() => setPeopleOpen(true)}
+        >
+          <UserAdd01Icon size={19} />
+        </HeaderIconButton>
         <HeaderIconButton
           label={t(language, "chat.newMessage")}
-          onClick={openCompose}
+          onClick={() => setPeopleOpen(true)}
         >
           <Edit02Icon size={19} />
         </HeaderIconButton>
@@ -141,27 +123,24 @@ export default function ChatSidebar({
               type="button"
               onClick={() => {
                 setMenuOpen(false);
-                if (hasTeam) setCreateGroupOpen(true);
-                else setPersonalGroupOpen(true);
+                setPersonalGroupOpen(true);
               }}
               className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-[13px] text-[var(--sig-label)] transition-colors hover:bg-[var(--sig-fill)]"
             >
               <UserGroupIcon size={16} />
-              {hasTeam ? t(language, "chat.createChannel") : "New personal group"}
+              New personal group
             </button>
-            {hasTeam && independentChat ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setPersonalGroupOpen(true);
-                }}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-[13px] text-[var(--sig-label)] transition-colors hover:bg-[var(--sig-fill)]"
-              >
-                <UserGroupIcon size={16} />
-                New personal group
-              </button>
-            ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                setWebhookFeedOpen(true);
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-[13px] text-[var(--sig-label)] transition-colors hover:bg-[var(--sig-fill)]"
+            >
+              <UserGroupIcon size={16} />
+              New feed
+            </button>
           </PopoverContent>
         </Popover>
       </div>
@@ -173,7 +152,7 @@ export default function ChatSidebar({
           onStartDM={onStartDM}
           onOpenProfile={onOpenProfile}
           language={language}
-          onOpenPeople={independentChat ? () => setPeopleOpen(true) : undefined}
+          onOpenPeople={() => setPeopleOpen(true)}
         />
       </div>
 
@@ -187,22 +166,11 @@ export default function ChatSidebar({
         onOpenChange={setPersonalGroupOpen}
         onCreated={handleGroupCreated}
       />
-      <CreateChannelDialog
-        open={createGroupOpen}
-        onOpenChange={setCreateGroupOpen}
-        members={members}
-        currentUserId={currentUserId}
-        teamName={teamName}
+      <CreateWebhookFeedDialog
+        open={webhookFeedOpen}
+        onOpenChange={setWebhookFeedOpen}
         language={language}
         onCreated={handleGroupCreated}
-      />
-      <NewDmDialog
-        open={composeOpen}
-        onOpenChange={setComposeOpen}
-        members={members}
-        currentUserId={currentUserId}
-        onStartDM={onStartDM}
-        language={language}
       />
     </aside>
   );

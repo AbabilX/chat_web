@@ -8,9 +8,7 @@ import {
   type ChatConversation,
   type ChatMessage,
 } from "@/lib/api";
-import type { ChatScope, ChatWsEvent } from "@/lib/api/types/chat";
-
-export type ChatScopeFilter = ChatScope | "all";
+import type { ChatWsEvent } from "@/lib/api/types/chat";
 import type { WallReactionGroup } from "@/lib/api/types/wall";
 import { subscribeAppWs } from "@/lib/notifications/ws-bus";
 import {
@@ -248,17 +246,8 @@ interface ChatState {
   dmSearchQuery: string;
   dmSectionOpen: boolean;
   channelsSectionOpen: boolean;
-  /**
-   * Which slice of conversations the sidebar shows. "all" is only meaningful
-   * once the server reports independent chat as available; without it the
-   * sidebar is workspace-only as before.
-   */
-  scopeFilter: ChatScopeFilter;
-  independentChat: boolean;
 
   setCurrentUserId: (id: string) => void;
-  setScopeFilter: (value: ChatScopeFilter) => void;
-  setIndependentChat: (value: boolean) => void;
   setUnreadOnly: (value: boolean) => void;
   setDmSearchQuery: (query: string) => void;
   setDmSectionOpen: (open: boolean) => void;
@@ -360,19 +349,11 @@ export const useChatStore = create<ChatState>()(
       dmSearchQuery: "",
       dmSectionOpen: true,
       channelsSectionOpen: true,
-      scopeFilter: "personal",
-      independentChat: false,
 
       setCurrentUserId: (id) => {
         const changed = id !== get().currentUserId;
         set({ currentUserId: id });
         if (id && changed) void get().fetchSidebar({ silent: true });
-      },
-      setIndependentChat: (value) => set({ independentChat: value }),
-      setScopeFilter: (value) => {
-        if (get().scopeFilter === value) return;
-        set({ scopeFilter: value });
-        void get().fetchSidebar({ silent: true });
       },
       setUnreadOnly: (value) => set({ unreadOnly: value }),
       setDmSearchQuery: (query) => set({ dmSearchQuery: query }),
@@ -406,14 +387,9 @@ export const useChatStore = create<ChatState>()(
             feeds: Object.fromEntries(Object.entries(state.feeds).map(([key, feed]) => [key, { ...feed, messages: feed.messages.filter((m) => messageSurvives(m, markers)) }])),
             threadRepliesByRoot: Object.fromEntries(Object.entries(state.threadRepliesByRoot).map(([key, messages]) => [key, messages.filter((m) => messageSurvives(m, markers))])),
           }));
-          // With independent chat live the sidebar is membership-driven and can
-          // be narrowed to one scope; otherwise it stays the workspace list.
-          const { independentChat, scopeFilter } = get();
-          const data = independentChat
-            ? await api.listAllChatConversations(
-                scopeFilter === "all" ? undefined : scopeFilter,
-              )
-            : await api.listChatConversations();
+          // Chat is scope-blind since migration 0145 — one membership-driven
+          // list, personal and converted groups alike, no scope to narrow.
+          const data = await api.listAllChatConversations();
           // Groups are sealed exactly like DMs, so both lists are opened.
           const [previewDms, previewChannels] = await Promise.all([
             decryptSidebarPreviews(data.dms ?? [], get().currentUserId),
@@ -887,6 +863,9 @@ export const useChatStore = create<ChatState>()(
                 body,
                 currentUserId,
                 deliver,
+                conversation?.plaintext_until_keyed
+                  ? () => deliver({ body })
+                  : undefined,
               )
             : await deliver({ body });
         const msg = currentUserId
@@ -1111,7 +1090,6 @@ export const useChatStore = create<ChatState>()(
         unreadOnly: s.unreadOnly,
         dmSectionOpen: s.dmSectionOpen,
         channelsSectionOpen: s.channelsSectionOpen,
-        scopeFilter: s.scopeFilter,
         activeConversationId: s.activeConversationId,
       }),
       // Drop non-UUID conversation ids persisted before validation existed.

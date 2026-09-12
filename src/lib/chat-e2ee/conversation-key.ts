@@ -8,6 +8,17 @@ import { unwrapDMKey, wrapDMKey } from "./dm-key-envelope";
 import { backfillConversationKeys } from "./key-backfill";
 import { dmKeys, getIdentityPrivateKey, getIdentityPublicKey } from "./identity-state";
 
+/**
+ * Thrown only on the FIRST-key path (no key has ever existed) when the
+ * roster has a member with no identity yet. Distinguished from a plain
+ * `Error` because it is the one case a caller may choose to fall back to
+ * plaintext — and only when the server has marked the conversation
+ * `plaintext_until_keyed`. A rotation (a key existed, went stale) never
+ * throws this: a conversation that has ever been keyed must never regress
+ * to plaintext.
+ */
+export class ChatKeyNotReady extends Error {}
+
 // A conversation with no readable key caches nothing, so a screenful of
 // messages would otherwise fire one identical GET each. Callers share the
 // in-flight request instead.
@@ -74,7 +85,7 @@ export async function loadDMKey(conversationID: string, userID: string, refresh 
  * the only source for everybody else's, which is the substitution that safety
  * numbers exist to catch, and there is no reason to extend it to our own.
  */
-async function createDMKey(conversationID: string, currentUserID: string) {
+async function createDMKey(conversationID: string, currentUserID: string, firstKey: boolean) {
   const identityPublicKey = getIdentityPublicKey();
   if (!getIdentityPrivateKey() || !identityPublicKey)
     throw new Error("Secure messages are not ready on this device yet");
@@ -83,11 +94,14 @@ async function createDMKey(conversationID: string, currentUserID: string) {
   // them would lock them out of their own conversation. Refusing here is what
   // keeps that a sentence the sender can act on rather than a rotation loop.
   if ((roster.unready_member_ids ?? []).length > 0) {
-    throw new Error(
+    const message =
       roster.unready_member_ids!.length === 1 && roster.members.length <= 1
         ? "This person must set up secure messages before you can send a DM"
-        : "Everyone here must open AbabilX once before this chat can be encrypted",
-    );
+        : "Everyone here must open AbabilX once before this chat can be encrypted";
+    // Only the first-ever key on this conversation may be caught and turned
+    // into a plaintext send — and only by a caller that already checked
+    // plaintext_until_keyed. A stale rotation always throws the plain Error.
+    throw firstKey ? new ChatKeyNotReady(message) : new Error(message);
   }
   const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
   const envelopes: Record<string, ChatE2EEKeyEnvelope> = {};
@@ -108,15 +122,18 @@ async function createDMKey(conversationID: string, currentUserID: string) {
 export async function ensureDMKey(conversationID: string, currentUserID: string) {
   const existing = await loadDMKey(conversationID, currentUserID);
   if (existing && !existing.stale) return existing;
-  return createDMKey(conversationID, currentUserID);
+  // No key ever loaded (fetchDMKey returned null, or nothing cached) is the
+  // first-key path; anything else is a rotation of a key that already existed.
+  return createDMKey(conversationID, currentUserID, existing === null);
 }
 
 /**
  * Forces a re-key, for the moment the server refuses a send because the key it
  * was sealed with is unreadable to the other side. Drops the cache first so a
- * key that went stale mid-session cannot be handed back.
+ * key that went stale mid-session cannot be handed back. Never the first-key
+ * path — a conversation being rotated has already been keyed once.
  */
 export async function rotateDMKey(conversationID: string, currentUserID: string) {
   dmKeys.delete(conversationID);
-  return createDMKey(conversationID, currentUserID);
+  return createDMKey(conversationID, currentUserID, false);
 }

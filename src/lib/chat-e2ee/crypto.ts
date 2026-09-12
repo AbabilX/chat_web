@@ -13,9 +13,9 @@ import {
   e2eeEncoder as encoder,
   randomBytes,
 } from "./primitives";
-import { ensureDMKey, loadDMKey, rotateDMKey } from "./conversation-key";
+import { ensureDMKey, loadDMKey, rotateDMKey, ChatKeyNotReady } from "./conversation-key";
 
-export { rotateDMKey };
+export { rotateDMKey, ChatKeyNotReady };
 
 export { isMessageVaultUnlocked, lockMessageVault } from "./identity-state";
 export {

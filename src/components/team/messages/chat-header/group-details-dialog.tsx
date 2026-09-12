@@ -8,7 +8,6 @@ import {
   Logout01Icon,
 } from "hugeicons-react";
 import type { ChatConversation } from "@/lib/api";
-import type { TeamMember } from "@/lib/api/types/team";
 import {
   Sheet,
   SheetContent,
@@ -17,7 +16,6 @@ import {
 } from "@/components/ui/sheet";
 import { t } from "@/lib/i18n";
 import { useGroupMembers } from "./use-group-members";
-import GroupRenameField from "./group-rename-field";
 import GroupMemberList from "./group-member-list";
 import GroupAddPeople from "./group-add-people";
 import GroupIdentitySection from "./group-identity-section";
@@ -25,6 +23,12 @@ import GroupPermissionsSection from "./group-permissions-section";
 import ActionRow from "./action-row";
 import WebhookSettingsSection from "./webhook-settings-section";
 
+/**
+ * Every group answers to its own `my_role` + permission switches since
+ * migration `0145` — there is no more workspace-channel branch here. A
+ * webhook feed is the one exception with its own settings section and no
+ * archive action (it is a plain read-only conversation, never archived).
+ */
 export default function GroupDetailsDialog({
   open,
   onOpenChange,
@@ -33,7 +37,6 @@ export default function GroupDetailsDialog({
   canEditInfo,
   canAddMembers,
   canDelete,
-  teamMembers,
   currentUserId,
   onRenamed,
   onCopyLink,
@@ -49,7 +52,6 @@ export default function GroupDetailsDialog({
   canEditInfo: boolean;
   canAddMembers: boolean;
   canDelete: boolean;
-  teamMembers: TeamMember[];
   currentUserId: string;
   onRenamed: (conv: ChatConversation) => void;
   onCopyLink: () => void;
@@ -59,7 +61,7 @@ export default function GroupDetailsDialog({
   language?: string | null;
 }) {
   const { members, reload } = useGroupMembers(conv.id, open);
-  const isPersonal = conv.scope === "personal";
+  const isWebhook = conv.type === "webhook";
   const existingIds = useMemo(
     () => new Set(members.map((m) => m.user_id)),
     [members],
@@ -78,29 +80,13 @@ export default function GroupDetailsDialog({
         </SheetHeader>
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          {/* A personal group has a photo, a description and permissions;
-              a workspace channel has a name and takes the rest from its team,
-              so it keeps the plain rename field it always had. */}
-          {isPersonal ? (
-            <GroupIdentitySection
-              conv={conv}
-              canEdit={canEditInfo}
-              onUpdated={onRenamed}
-            />
-          ) : canManage ? (
-            <GroupRenameField
-              channelId={conv.id}
-              currentName={conv.name ?? ""}
-              onRenamed={onRenamed}
-              language={language}
-            />
-          ) : null}
+          <GroupIdentitySection conv={conv} canEdit={canEditInfo} onUpdated={onRenamed} />
 
-          {isPersonal && canManage ? (
+          {canManage ? (
             <GroupPermissionsSection conv={conv} onUpdated={onRenamed} />
           ) : null}
 
-          {conv.type === "webhook" && canManage ? (
+          {isWebhook && canManage ? (
             <WebhookSettingsSection conversationId={conv.id} />
           ) : null}
 
@@ -113,8 +99,8 @@ export default function GroupDetailsDialog({
               ownerId={conv.created_by}
               currentUserId={currentUserId}
               language={language}
-              conversationId={isPersonal ? conv.id : undefined}
-              canManage={isPersonal && canManage}
+              conversationId={conv.id}
+              canManage={canManage}
               onChanged={reload}
             />
           </div>
@@ -122,7 +108,6 @@ export default function GroupDetailsDialog({
           {canAddMembers ? (
             <GroupAddPeople
               channelId={conv.id}
-              teamMembers={teamMembers}
               existingMemberIds={existingIds}
               onAdded={reload}
               language={language}
@@ -137,7 +122,7 @@ export default function GroupDetailsDialog({
                 onCopyLink();
               }}
             />
-            {canManage && conv.type !== "webhook" ? (
+            {canManage && !isWebhook ? (
               <ActionRow
                 icon={<Archive02Icon size={16} />}
                 label={t(language, "chat.archiveGroup")}

@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { api } from "@/lib/api";
-import { useTeamContext } from "@/components/team/shared/team-provider";
 import { useChatStore } from "@/store/chat-store";
 import {
   replayChatOutbox,
@@ -26,13 +25,12 @@ async function replayCurrentUserOutbox() {
 
 /** Mount once in app shell — keeps DM list + WS alive across pages. */
 export default function ChatStoreSync() {
-  const { loading, hasTeam } = useTeamContext();
-  const independentChat = useChatStore((s) => s.independentChat);
   const initRealtime = useChatStore((s) => s.initRealtime);
   const fetchSidebar = useChatStore((s) => s.fetchSidebar);
   const setCurrentUserId = useChatStore((s) => s.setCurrentUserId);
-  const resetTeamChatState = useChatStore((s) => s.resetTeamChatState);
-  const chatReady = hasTeam || independentChat;
+  const currentUserId = useChatStore((s) => s.currentUserId);
+  // Chat needs no workspace since migration 0145 — only a signed-in account.
+  const chatReady = !!currentUserId;
 
   useEffect(() => {
     void requestPersistentChatStorage();
@@ -50,14 +48,9 @@ export default function ChatStoreSync() {
   }, [setCurrentUserId]);
 
   useEffect(() => {
-    if (loading) return;
-    if (!chatReady) {
-      resetTeamChatState();
-      return;
-    }
-    void fetchSidebar();
+    if (!chatReady) return;
     return initRealtime();
-  }, [loading, chatReady, initRealtime, fetchSidebar, resetTeamChatState]);
+  }, [chatReady, initRealtime]);
 
   useEffect(() => {
     const onVisible = () => {

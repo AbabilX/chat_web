@@ -1,10 +1,13 @@
 import { api } from "@/lib/api";
 import type { ChatConversation } from "@/lib/api/types/chat";
-import { encryptNewDMText } from "./crypto";
+import { encryptNewDMText, ChatKeyNotReady } from "./crypto";
 import { isEncryptedConversation } from "./eligible";
 
 /** One destination, as much of it as choosing a payload needs. */
-export type ForwardConversation = Pick<ChatConversation, "id" | "type" | "scope">;
+export type ForwardConversation = Pick<
+  ChatConversation,
+  "id" | "type" | "scope" | "plaintext_until_keyed"
+>;
 
 /** Text prepared for one destination: plaintext for a channel, ciphertext otherwise. */
 export type ForwardPayload = {
@@ -54,16 +57,26 @@ export async function buildForwardTargets({
 }: BuildForwardTargetsInput): Promise<ForwardTarget[]> {
   const trimmedCaption = caption?.trim() ?? "";
 
+  const plainTarget = (conversation: ForwardConversation): ForwardTarget => ({
+    conversation_id: conversation.id,
+    message: { body: text },
+    caption: trimmedCaption ? { body: trimmedCaption } : undefined,
+  });
+
   const conversationTargets = await Promise.all(
     conversations.map(async (conversation) => {
-      if (!isEncryptedConversation(conversation)) {
-        return {
-          conversation_id: conversation.id,
-          message: { body: text },
-          caption: trimmedCaption ? { body: trimmedCaption } : undefined,
-        } satisfies ForwardTarget;
+      if (!isEncryptedConversation(conversation)) return plainTarget(conversation);
+      try {
+        return await buildEncryptedTarget(conversation.id, text, trimmedCaption, currentUserId);
+      } catch (error) {
+        // Same rule as an ordinary send: only a group the server marks
+        // plaintext_until_keyed may take the text as it is. A DM or a group
+        // created as one rethrows.
+        if (error instanceof ChatKeyNotReady && conversation.plaintext_until_keyed) {
+          return plainTarget(conversation);
+        }
+        throw error;
       }
-      return buildEncryptedTarget(conversation.id, text, trimmedCaption, currentUserId);
     }),
   );
 

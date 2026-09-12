@@ -49,31 +49,16 @@ export default function ChatHeader({
 
   const isGroup = !!activeConv && activeConv.type !== "dm";
   const isDM = activeConv?.type === "dm";
-  const myRole = teamCtx?.detail?.my_role;
-  const isLeader = myRole === "leader";
-  // Leaders and managers can delete any workspace group; the creator can manage
-  // their own. A personal group answers to its ADMINS — plural, and decided by
-  // the server in `my_role`, not by created_by: a creator who has been demoted
-  // is an ordinary member, or demoting them would have meant nothing.
-  const isPersonal = activeConv?.scope === "personal";
-  const isWebhook = activeConv?.type === "webhook";
-  const isOwner = !!activeConv && activeConv.created_by === currentUserId;
+  // Every group answers to its own ADMINS since migration 0145 — plural, and
+  // decided by the server in `my_role`, never by created_by: a creator who has
+  // been demoted is an ordinary member, and a converted workspace channel's
+  // creator is admin only if the migration made them one.
   const isGroupAdmin = activeConv?.my_role === "admin";
-  const canManage = isPersonal
-    ? isGroupAdmin
-    : !!activeConv && (isLeader || isOwner);
-  const canDeleteGroup = isPersonal
-    ? isGroupAdmin
-    : isWebhook
-      ? canManage || myRole === "manager"
-      : isLeader || myRole === "manager";
-  // The group's own switch can widen these two past "admins only".
-  const canEditInfo = isPersonal
-    ? isGroupAdmin || activeConv?.edit_info_role === "member"
-    : canManage;
-  const canAddMembers = isPersonal
-    ? isGroupAdmin || activeConv?.add_members_role === "member"
-    : canManage;
+  const canManage = isGroupAdmin;
+  const canDeleteGroup = isGroupAdmin;
+  // The group's own switches can widen these two past "admins only".
+  const canEditInfo = isGroupAdmin || activeConv?.edit_info_role === "member";
+  const canAddMembers = isGroupAdmin || activeConv?.add_members_role === "member";
   const teamMembers = teamCtx?.detail?.members ?? [];
 
   function openConversationSearch() {
@@ -151,7 +136,6 @@ export default function ChatHeader({
             canEditInfo={canEditInfo}
             canAddMembers={canAddMembers}
             canDelete={canDeleteGroup}
-            teamMembers={teamMembers}
             currentUserId={currentUserId}
             onRenamed={upsertChannel}
             onCopyLink={() => void actions.copyLink()}

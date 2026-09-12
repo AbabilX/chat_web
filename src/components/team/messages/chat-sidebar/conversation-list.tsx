@@ -7,7 +7,6 @@ import type { TeamMember } from "@/lib/api/types/team";
 import { localMessageSearchHit } from "@/lib/chat-local-index";
 import ConversationListItem from "./conversation-list-item";
 import ConversationSearchSection from "./conversation-search-section";
-import ScopeFilterTabs from "./scope-filter-tabs";
 import AddPeopleCta from "./add-people-cta";
 import StartConversationSection from "./start-conversation-section";
 import { sortConversations } from "./conversation-sort";
@@ -52,7 +51,6 @@ export default function ConversationList({
     currentUserId,
     unreadOnly,
     dmSearchQuery,
-    independentChat,
     setUnreadOnly,
     setDmSearchQuery,
   } = useChatStore(
@@ -63,7 +61,6 @@ export default function ConversationList({
       currentUserId: s.currentUserId,
       unreadOnly: s.unreadOnly,
       dmSearchQuery: s.dmSearchQuery,
-      independentChat: s.independentChat,
       setUnreadOnly: s.setUnreadOnly,
       setDmSearchQuery: s.setDmSearchQuery,
     })),
@@ -117,8 +114,6 @@ export default function ConversationList({
         </button>
       </div>
 
-      <ScopeFilterTabs />
-
       <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-3">
         {empty ? (
           <div className="px-3 py-6 text-center">
@@ -129,7 +124,7 @@ export default function ConversationList({
                   ? t(language, "chat.noUnread")
                   : t(language, "chat.noConversations")}
             </p>
-            {independentChat && onOpenPeople && !unreadOnly && !searching ? (
+            {onOpenPeople && !unreadOnly && !searching ? (
               <AddPeopleCta
                 onClick={onOpenPeople}
                 label="Find people to message"

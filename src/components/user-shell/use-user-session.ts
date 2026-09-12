@@ -11,7 +11,6 @@ import {
 } from "@/lib/api";
 import { initAccent } from "@/lib/accent";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
-import { useChatStore } from "@/store/chat-store";
 
 export function useUserSession() {
   const router = useRouter();
@@ -29,7 +28,6 @@ export function useUserSession() {
       .then(([session, plan]) => {
         if (cancelled) return;
         setUser(sessionPlanUser(session, plan));
-        useChatStore.getState().setIndependentChat(!!session.independent_chat);
       })
       .catch((err) => {
         if (cancelled) return;

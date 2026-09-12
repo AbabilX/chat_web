@@ -1,6 +1,6 @@
 import type { ChatMessage } from "@/lib/api/types/chat";
 import { isStaleChatKeyError, type ChatSendBody } from "@/lib/messages/outbox";
-import { encryptNewDMText, rotateDMKey } from "./crypto";
+import { encryptNewDMText, rotateDMKey, ChatKeyNotReady } from "./crypto";
 
 /**
  * Encrypts a message and sends it, re-keying once if the server refuses the key.
@@ -18,16 +18,26 @@ import { encryptNewDMText, rotateDMKey } from "./crypto";
  *
  * Exactly one retry: a second refusal is a real problem and belongs in front of
  * the user.
+ *
+ * `sendUnencrypted` is only ever supplied by a caller that already checked the
+ * server's `plaintext_until_keyed` on this conversation — a converted group
+ * that has never had a key. Passing it for anything else would silently widen
+ * the plaintext exception the server never granted.
  */
 export async function sendEncryptedChat(
   conversationId: string,
   text: string,
   currentUserID: string,
   send: (encrypted: ChatSendBody) => Promise<ChatMessage>,
+  sendUnencrypted?: () => Promise<ChatMessage>,
 ): Promise<ChatMessage> {
   try {
     return await send(await encryptNewDMText(conversationId, text, currentUserID));
   } catch (error) {
+    if (error instanceof ChatKeyNotReady) {
+      if (!sendUnencrypted) throw error;
+      return sendUnencrypted();
+    }
     if (!isStaleChatKeyError(error)) throw error;
     await rotateDMKey(conversationId, currentUserID);
     return send(await encryptNewDMText(conversationId, text, currentUserID));

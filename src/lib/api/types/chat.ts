@@ -81,6 +81,15 @@ export type ChatConversation = {
    * re-derive a permission it would then have to keep in sync.
    */
   my_role?: "admin" | "member";
+  /**
+   * True only for a group converted from a workspace channel (migration
+   * `0145`) that has never had an E2EE key. The server, never the client,
+   * decides when plaintext is still acceptable here — mirrors
+   * `chatPlaintextUntilKeyedSQL` on the server and `plaintextUntilKeyed` on
+   * mobile. A DM, a group created as one, or a group that has ever been
+   * keyed is always false.
+   */
+  plaintext_until_keyed?: boolean;
 };
 
 export type ChatMember = {

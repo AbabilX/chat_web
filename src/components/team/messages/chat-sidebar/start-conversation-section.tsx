@@ -5,14 +5,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import PresenceAvatar from "@/components/shared/presence-avatar";
 import { chatInitials } from "../chat-utils";
 import { t } from "@/lib/i18n";
-import { useChatStore } from "@/store/chat-store";
 import AddPeopleCta from "./add-people-cta";
 
 /**
  * Workspace members you don't yet have a DM with — quick "start a conversation"
- * list. With independent chat on it also carries the way out of the workspace:
- * people outside it are reachable through a connection request, so the entry
- * point sits right where the member list runs out.
+ * list. A workspace is only a source of suggestions since migration `0145`;
+ * anyone else is reachable through a connection request, so the entry point
+ * sits right where the member list runs out.
  */
 export default function StartConversationSection({
   members,
@@ -29,11 +28,10 @@ export default function StartConversationSection({
   language?: string | null;
   onOpenPeople?: () => void;
 }) {
-  const independentChat = useChatStore((s) => s.independentChat);
   const candidates = members.filter(
     (m) => m.user_id !== currentUserId && !existingPeerIds.has(m.user_id),
   );
-  const showAddPeople = independentChat && !!onOpenPeople;
+  const showAddPeople = !!onOpenPeople;
   if (candidates.length === 0 && !showAddPeople) return null;
 
   return (
@@ -62,7 +60,7 @@ export default function StartConversationSection({
       {showAddPeople ? (
         <AddPeopleCta
           onClick={onOpenPeople!}
-          label="Add someone outside this workspace"
+          label="Add someone new"
           className="mt-2"
         />
       ) : null}
